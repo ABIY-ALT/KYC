@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +23,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { User as UserData } from '@/lib/data';
+import { users as mockUsers } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 
@@ -56,12 +57,23 @@ export default function ProfilePage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
-    const { data: users, isLoading: isProfileLoading } = useCollection<UserData>(usersQuery);
-    
-    // For demo purposes, we'll use the first user in the database as the profile.
-    const userData = users?.[0];
-    const userDocRef = userData ? doc(firestore, 'users', userData.id) : null;
+    // For demo purposes, we are consistently viewing/editing the 'usr-admin' profile.
+    const adminId = 'usr-admin';
+    const userDocRef = useMemoFirebase(() => doc(firestore, 'users', adminId), [firestore, adminId]);
+    const { data: userData, isLoading: isProfileLoading } = useDoc<UserData>(userDocRef);
+
+    // This effect ensures that the admin user exists in Firestore for the demo.
+    // If not found, it's created from the mock data.
+    useEffect(() => {
+        if (!isProfileLoading && !userData && userDocRef) {
+            const adminMockData = mockUsers.find(u => u.id === adminId);
+            if (adminMockData) {
+                // Using set with merge:false to create the document only if it doesn't exist.
+                setDocumentNonBlocking(userDocRef, adminMockData, { merge: false });
+            }
+        }
+    }, [isProfileLoading, userData, userDocRef, adminId]);
+
 
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
