@@ -189,3 +189,63 @@ export const statusDistributionData = [
   { status: 'Rejected', count: 21, fill: 'hsl(var(--chart-4))' },
   { status: 'Escalated', count: 18, fill: 'hsl(var(--chart-5))' },
 ];
+
+export type Notification = {
+  id: string;
+  type: 'New Submission' | 'Amendment Request' | 'Approval' | 'Escalation' | 'SLA Warning';
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  linkTo: string; // e.g., /review-queue/SUB001
+};
+
+export const notifications: Notification[] = [
+  {
+    id: 'notif-001',
+    type: 'New Submission',
+    message: 'New KYC submission from Alice Johnson (SUB001).',
+    timestamp: '2023-10-27T11:55:00Z',
+    isRead: false,
+    linkTo: '/review-queue/SUB001',
+  },
+  {
+    id: 'notif-002',
+    type: 'Escalation',
+    message: 'Case SUB004 for David Green has been escalated for review.',
+    timestamp: '2023-10-27T10:00:00Z',
+    isRead: false,
+    linkTo: '/review-queue/SUB004',
+  },
+  {
+    id: 'notif-003',
+    type: 'Approval',
+    message: 'Your submission for Bob Williams (SUB002) has been approved.',
+    timestamp: '2023-10-27T04:00:00Z',
+    isRead: true,
+    linkTo: '/review-queue/SUB002',
+  },
+  {
+    id: 'notif-004',
+    type: 'Amendment Request',
+    message: 'Amendment requested for Carol White (SUB003).',
+    timestamp: '2023-10-26T12:00:00Z',
+    isRead: true,
+    linkTo: '/review-queue/SUB003',
+  },
+  {
+    id: 'notif-005',
+    type: 'SLA Warning',
+    message: 'Submission SUB006 is nearing its SLA deadline.',
+    timestamp: '2023-10-27T11:30:00Z',
+    isRead: false,
+    linkTo: '/review-queue/SUB006',
+  },
+  {
+    id: 'notif-006',
+    type: 'New Submission',
+    message: 'New KYC submission from Grace Hall (SUB007).',
+    timestamp: '2023-10-27T09:00:00Z',
+    isRead: true,
+    linkTo: '/review-queue/SUB007',
+  },
+];
