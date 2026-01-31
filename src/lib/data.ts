@@ -249,3 +249,23 @@ export const notifications: Notification[] = [
     linkTo: '/review-queue/SUB007',
   },
 ];
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Admin' | 'Supervisor' | 'Officer' | 'Branch Manager';
+  branch: string;
+  district: string;
+  status: 'Active' | 'Inactive';
+};
+
+export const users: User[] = [
+  { id: 'usr-admin', name: 'Alex Ray', email: 'alex.ray@kycflow.com', role: 'Admin', branch: 'Corporate', district: 'Corporate', status: 'Active' },
+  { id: 'off-001', name: 'Charlie Davis', email: 'charlie.davis@kycflow.com', role: 'Officer', branch: 'Downtown', district: 'Metro District', status: 'Active' },
+  { id: 'off-002', name: 'Diana Prince', email: 'diana.prince@kycflow.com', role: 'Officer', branch: 'Uptown', district: 'Metro District', status: 'Active' },
+  { id: 'usr-sup-1', name: 'Samuel Jones', email: 'samuel.jones@kycflow.com', role: 'Supervisor', branch: 'Downtown', district: 'Metro District', status: 'Active' },
+  { id: 'usr-man-1', name: 'Maria Garcia', email: 'maria.garcia@kycflow.com', role: 'Branch Manager', branch: 'Eastside', district: 'Suburban District', status: 'Inactive' },
+  { id: 'off-003', name: 'Ethan Hunt', email: 'ethan.hunt@kycflow.com', role: 'Officer', branch: 'Eastside', district: 'Suburban District', status: 'Active' },
+  { id: 'off-004', name: 'Fiona Glenanne', email: 'fiona.glenanne@kycflow.com', role: 'Officer', branch: 'Westend', district: 'Suburban District', status: 'Active' },
+];
