@@ -129,3 +129,23 @@ export const branchPerformanceData: BranchPerformanceData[] = [
   { id: 'branch-04', name: 'Westend', totalSubmissions: 150, approvalRate: 88, amendmentCount: 20, avgTurnaroundTime: 1.5, slaCompliance: 97 },
   { id: 'branch-05', name: 'North', totalSubmissions: 510, approvalRate: 95, amendmentCount: 10, avgTurnaroundTime: 0.7, slaCompliance: 100 },
 ];
+
+export type OfficerPerformanceData = {
+  id: string;
+  name: string;
+  team: 'Alpha' | 'Bravo' | 'Charlie';
+  casesReviewed: number;
+  approvalRate: number; // percentage
+  amendmentRate: number; // percentage
+  escalationRate: number; // percentage
+  avgProcessingTime: number; // in hours
+};
+
+export const officerPerformanceData: OfficerPerformanceData[] = [
+  { id: 'off-001', name: 'Charlie Davis', team: 'Alpha', casesReviewed: 152, approvalRate: 95, amendmentRate: 3, escalationRate: 2, avgProcessingTime: 4.5 },
+  { id: 'off-002', name: 'Diana Prince', team: 'Alpha', casesReviewed: 181, approvalRate: 98, amendmentRate: 1, escalationRate: 1, avgProcessingTime: 3.2 },
+  { id: 'off-003', name: 'Ethan Hunt', team: 'Bravo', casesReviewed: 124, approvalRate: 90, amendmentRate: 7, escalationRate: 3, avgProcessingTime: 6.1 },
+  { id: 'off-004', name: 'Fiona Glenanne', team: 'Bravo', casesReviewed: 203, approvalRate: 92, amendmentRate: 5, escalationRate: 3, avgProcessingTime: 5.5 },
+  { id: 'off-005', name: 'George Mason', team: 'Charlie', casesReviewed: 95, approvalRate: 88, amendmentRate: 10, escalationRate: 2, avgProcessingTime: 7.3 },
+  { id: 'off-006', name: 'Hannah Wells', team: 'Charlie', casesReviewed: 133, approvalRate: 91, amendmentRate: 6, escalationRate: 3, avgProcessingTime: 5.9 },
+];
