@@ -5,20 +5,49 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppSidebar from '@/components/app-sidebar';
 import AppHeader from '@/components/app-header';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import type { User as UserData } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { user, isUserLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
+  const { data: userData, isLoading: isProfileLoading } = useDoc<UserData>(userDocRef);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !authUser) {
       router.replace('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [authUser, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  // Create a user document for anonymous users on first load if it doesn't exist
+  useEffect(() => {
+      if (authUser && !userData && !isProfileLoading && userDocRef) {
+          // This is a new anonymous user. Let's create a profile for them for the demo.
+          // We'll give them the 'Admin' role so they can access all features.
+          const newUserData: UserData = {
+              id: authUser.uid,
+              username: `demo_${authUser.uid.slice(0, 6)}`,
+              firstName: 'Demo',
+              lastName: 'Admin',
+              email: authUser.email || 'demo@example.com',
+              role: 'Admin',
+              branch: 'Corporate',
+              district: 'Corporate',
+              status: 'Active',
+          };
+          setDocumentNonBlocking(userDocRef, newUserData, { merge: false });
+      }
+  }, [authUser, userData, isProfileLoading, userDocRef]);
+
+  // Show loading skeleton until we have both the auth user and their corresponding Firestore profile
+  const isLoading = isUserLoading || (authUser && !userData);
+
+  if (isLoading || !authUser) {
     return (
       <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
         <div className="hidden border-r bg-card lg:block">
@@ -53,9 +82,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-      <AppSidebar />
+      <AppSidebar user={userData} />
       <div className="flex flex-col">
-        <AppHeader />
+        <AppHeader user={userData} />
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
           {children}
         </main>

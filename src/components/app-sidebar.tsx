@@ -8,8 +8,9 @@ import { AppNav } from '@/components/app-nav';
 import { Button } from '@/components/ui/button';
 import { CircleUser, LogOut } from 'lucide-react';
 import { useAuth } from '@/firebase';
+import type { User } from '@/lib/data';
 
-export default function AppSidebar() {
+export default function AppSidebar({ user }: { user: User | null }) {
   const auth = useAuth();
   const router = useRouter();
 
