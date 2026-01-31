@@ -23,30 +23,47 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { Building, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
-  customerName: z.string().min(2, "Customer name must be at least 2 characters."),
-  customerId: z.string().min(5, "Customer ID must be at least 5 characters."),
   documentType: z.string({ required_error: "Please select a document type." }),
-  document: z.instanceof(File).refine(file => file?.size > 0, "Document is required."),
+  documents: z.array(z.instanceof(File))
+    .nonempty("At least one document is required.")
+    .refine(files => files.every(file => file.size > 0), "One of the files is empty."),
 });
+
+// Mock user data for "automatic branch tagging"
+const MOCK_USER_BRANCH = "Downtown";
 
 export default function NewSubmissionPage() {
     const { toast } = useToast();
+    const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setCurrentTime(new Date());
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            customerName: "",
-            customerId: "",
+            documents: [],
         },
     });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
+        console.log({
+            ...values,
+            branch: MOCK_USER_BRANCH,
+            timestamp: new Date().toISOString(),
+        });
         toast({
             title: "Submission Successful",
-            description: `KYC documents for ${values.customerName} have been submitted.`,
+            description: `${values.documents.length} document(s) have been submitted for branch ${MOCK_USER_BRANCH}.`,
             variant: "default",
         });
         form.reset();
@@ -58,38 +75,30 @@ export default function NewSubmissionPage() {
         <CardHeader>
             <CardTitle>New KYC Submission</CardTitle>
             <CardDescription>
-            Fill in the details and upload the required documents for the new customer.
+            Upload customer documents for review. The submission will be automatically tagged with your branch and the current timestamp.
             </CardDescription>
         </CardHeader>
         <CardContent>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 p-4 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-3">
+                    <Building className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                        <p className="text-xs text-muted-foreground">Branch</p>
+                        <p className="font-medium">{MOCK_USER_BRANCH}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                        <p className="text-xs text-muted-foreground">Submission Time</p>
+                        <p className="font-medium">
+                            {currentTime ? format(currentTime, "PPP p") : "Loading time..."}
+                        </p>
+                    </div>
+                </div>
+            </div>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <FormField
-                control={form.control}
-                name="customerName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Customer Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="customerId"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Customer ID</FormLabel>
-                    <FormControl>
-                        <Input placeholder="CUST-12345" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
                 <FormField
                 control={form.control}
                 name="documentType"
@@ -107,6 +116,7 @@ export default function NewSubmissionPage() {
                                 <SelectItem value="drivers_license">Driver's License</SelectItem>
                                 <SelectItem value="national_id">National ID Card</SelectItem>
                                 <SelectItem value="utility_bill">Utility Bill</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
                             </SelectContent>
                         </Select>
                     <FormMessage />
@@ -115,25 +125,38 @@ export default function NewSubmissionPage() {
                 />
                 <FormField
                 control={form.control}
-                name="document"
-                render={({ field: { onChange, value, ...rest } }) => (
+                name="documents"
+                render={({ field: { value, onChange, ...fieldProps } }) => (
                     <FormItem>
-                    <FormLabel>Document Upload</FormLabel>
+                    <FormLabel>Document Uploads</FormLabel>
                     <FormControl>
-                        <Input 
-                        type="file" 
-                        onChange={(e) => {
-                            if (e.target.files) onChange(e.target.files[0]);
-                        }} 
-                        className="file:text-primary file:font-medium"
-                        {...rest}
+                        <Input
+                            {...fieldProps}
+                            type="file"
+                            multiple
+                            onChange={(event) =>
+                              onChange(event.target.files && Array.from(event.target.files))
+                            }
+                            className="file:text-primary file:font-medium"
                         />
                     </FormControl>
-                    <FormDescription>Upload a single PDF, JPG, or PNG file.</FormDescription>
+                    <FormDescription>Upload one or more PDF, JPG, or PNG files.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
+
+                {form.watch("documents") && form.watch("documents").length > 0 && (
+                    <div className="space-y-2">
+                        <Label>Selected files:</Label>
+                        <ul className="list-disc list-inside text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg border max-h-48 overflow-y-auto">
+                            {form.watch("documents").map((file: File, index) => (
+                                <li key={index}>{file.name} ({(file.size / 1024).toFixed(2)} KB)</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
                 <Button type="submit">Submit for Review</Button>
             </form>
             </Form>
