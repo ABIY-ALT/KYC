@@ -1,11 +1,23 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
 import { Button } from '@/components/ui/button';
 import { CircleUser, LogOut } from 'lucide-react';
+import { useAuth } from '@/firebase';
 
 export default function AppSidebar() {
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    auth.signOut();
+    router.replace('/login');
+  };
+
   return (
     <div className="hidden border-r bg-card lg:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
@@ -22,7 +34,7 @@ export default function AppSidebar() {
                   My Profile
               </Button>
             </Link>
-            <Button variant="ghost" className="w-full justify-start">
+            <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
             </Button>

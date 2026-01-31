@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Menu,
   Search,
@@ -23,8 +24,17 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
+import { useAuth } from '@/firebase';
 
 export default function AppHeader() {
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    auth.signOut();
+    router.replace('/login');
+  };
+
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
       <Sheet>
@@ -82,7 +92,7 @@ export default function AppHeader() {
             </DropdownMenuItem>
           </Link>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
           </DropdownMenuItem>
