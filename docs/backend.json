@@ -1,0 +1,471 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the KYC system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user within the system (e.g., Branch, KYC Officer, Supervisor, Director, System Administrator)."
+        },
+        "branchId": {
+          "type": "string",
+          "description": "Reference to Branch. (Relationship: Branch 1:N User).  Null if user is not associated with a branch."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "firstName",
+        "lastName",
+        "email",
+        "role"
+      ]
+    },
+    "Branch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Branch",
+      "type": "object",
+      "description": "Represents a branch office within the organization.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the branch."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the branch."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the branch."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address"
+      ]
+    },
+    "KYCDocument": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KYCDocument",
+      "type": "object",
+      "description": "Represents a KYC (Know Your Customer) document.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the KYC document."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Identifier for the customer to whom the KYC document belongs."
+        },
+        "branchId": {
+          "type": "string",
+          "description": "Reference to Branch. (Relationship: Branch 1:N KYCDocument). The branch that uploaded the document."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "The date and time when the document was uploaded.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the KYC document (e.g., Submitted, In Review, Amendment Requested, Approved, Escalated)."
+        },
+        "documentType": {
+          "type": "string",
+          "description": "Type of KYC document (e.g., Passport, Driver's License, Utility Bill)."
+        },
+        "documentUrl": {
+          "type": "string",
+          "description": "URL or path to the uploaded KYC document."
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "branchId",
+        "uploadDate",
+        "status",
+        "documentType",
+        "documentUrl"
+      ]
+    },
+    "AmendmentRequest": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AmendmentRequest",
+      "type": "object",
+      "description": "Represents a request for amendment to a KYC document.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the amendment request."
+        },
+        "kycDocumentId": {
+          "type": "string",
+          "description": "Reference to KYCDocument. (Relationship: KYCDocument 1:N AmendmentRequest). The KYC document to which the amendment request applies."
+        },
+        "officerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N AmendmentRequest).  The KYC officer who requested the amendment."
+        },
+        "requestDate": {
+          "type": "string",
+          "description": "The date and time when the amendment request was made.",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the amendment request."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the amendment request (e.g., Pending, Resolved)."
+        },
+        "amendedDocumentUrl": {
+          "type": "string",
+          "description": "URL or path to the amended KYC document, if provided."
+        }
+      },
+      "required": [
+        "id",
+        "kycDocumentId",
+        "officerId",
+        "requestDate",
+        "reason",
+        "status"
+      ]
+    },
+    "Escalation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Escalation",
+      "type": "object",
+      "description": "Represents an escalated KYC case requiring supervisor review.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the escalation."
+        },
+        "kycDocumentId": {
+          "type": "string",
+          "description": "Reference to KYCDocument. (Relationship: KYCDocument 1:N Escalation). The KYC document that was escalated."
+        },
+        "supervisorId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Escalation). The supervisor who is reviewing the escalated case."
+        },
+        "escalationDate": {
+          "type": "string",
+          "description": "The date and time when the case was escalated.",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reason for the escalation."
+        },
+        "resolution": {
+          "type": "string",
+          "description": "The resolution of the escalated case."
+        },
+        "resolutionDate": {
+          "type": "string",
+          "description": "The date and time when the escalated case was resolved.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "kycDocumentId",
+        "supervisorId",
+        "escalationDate",
+        "reason"
+      ]
+    },
+    "ReviewQueue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ReviewQueue",
+      "type": "object",
+      "description": "Represents the queue of KYC documents awaiting review by KYC officers.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the review queue entry."
+        },
+        "kycDocumentId": {
+          "type": "string",
+          "description": "Reference to KYCDocument. (Relationship: KYCDocument 1:1 ReviewQueue). The KYC document in the review queue."
+        },
+        "officerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ReviewQueue). The KYC officer assigned to review the document.  Can be null if not yet assigned."
+        },
+        "queueEntryDate": {
+          "type": "string",
+          "description": "The date and time when the document was added to the review queue.",
+          "format": "date-time"
+        },
+        "priority": {
+          "type": "number",
+          "description": "The priority of the document in the queue (e.g., 1 for high priority, 2 for medium, 3 for low)."
+        }
+      },
+      "required": [
+        "id",
+        "kycDocumentId",
+        "queueEntryDate",
+        "priority"
+      ]
+    },
+    "SystemConfiguration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemConfiguration",
+      "type": "object",
+      "description": "Represents system-wide configuration settings.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the configuration setting."
+        },
+        "settingName": {
+          "type": "string",
+          "description": "The name of the configuration setting (e.g., 'AI_COMPLIANCE_CHECK_ENABLED', 'MAX_RETRIES')."
+        },
+        "settingValue": {
+          "type": "string",
+          "description": "The value of the configuration setting."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of what the configuration setting controls."
+        }
+      },
+      "required": [
+        "id",
+        "settingName",
+        "settingValue",
+        "description"
+      ]
+    },
+    "AuditLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditLog",
+      "type": "object",
+      "description": "Represents an audit log entry for system activities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the audit log entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N AuditLog). The user who performed the action."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the action was performed.",
+          "format": "date-time"
+        },
+        "action": {
+          "type": "string",
+          "description": "The action that was performed (e.g., 'UPLOAD_DOCUMENT', 'REQUEST_AMENDMENT', 'APPROVE_DOCUMENT')."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "The type of entity that was affected by the action (e.g., 'KYCDocument', 'AmendmentRequest')."
+        },
+        "entityId": {
+          "type": "string",
+          "description": "The ID of the entity that was affected by the action."
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details about the action."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "timestamp",
+        "action",
+        "entityType",
+        "entityId"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data. Accessible only by the user and system administrators.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}",
+        "definition": {
+          "entityName": "Branch",
+          "schema": {
+            "$ref": "#/backend/entities/Branch"
+          },
+          "description": "Stores branch information.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "The unique identifier of the branch."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}/kyc_documents/{kycDocumentId}",
+        "definition": {
+          "entityName": "KYCDocument",
+          "schema": {
+            "$ref": "#/backend/entities/KYCDocument"
+          },
+          "description": "Stores KYC documents associated with a specific branch.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "The unique identifier of the branch."
+            },
+            {
+              "name": "kycDocumentId",
+              "description": "The unique identifier of the KYC document."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/branches/{branchId}/kyc_documents/{kycDocumentId}/amendment_requests/{amendmentRequestId}",
+        "definition": {
+          "entityName": "AmendmentRequest",
+          "schema": {
+            "$ref": "#/backend/entities/AmendmentRequest"
+          },
+          "description": "Stores amendment requests associated with a specific KYC document.",
+          "params": [
+            {
+              "name": "branchId",
+              "description": "The unique identifier of the branch."
+            },
+            {
+              "name": "kycDocumentId",
+              "description": "The unique identifier of the KYC document."
+            },
+            {
+              "name": "amendmentRequestId",
+              "description": "The unique identifier of the amendment request."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/escalations/{escalationId}",
+        "definition": {
+          "entityName": "Escalation",
+          "schema": {
+            "$ref": "#/backend/entities/Escalation"
+          },
+          "description": "Stores escalation records.",
+          "params": [
+            {
+              "name": "escalationId",
+              "description": "The unique identifier of the escalation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/review_queue/{reviewQueueId}",
+        "definition": {
+          "entityName": "ReviewQueue",
+          "schema": {
+            "$ref": "#/backend/entities/ReviewQueue"
+          },
+          "description": "Stores entries for the KYC document review queue.",
+          "params": [
+            {
+              "name": "reviewQueueId",
+              "description": "The unique identifier of the review queue entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/system_configuration/{configId}",
+        "definition": {
+          "entityName": "SystemConfiguration",
+          "schema": {
+            "$ref": "#/backend/entities/SystemConfiguration"
+          },
+          "description": "Stores system-wide configuration settings.",
+          "params": [
+            {
+              "name": "configId",
+              "description": "The unique identifier of the configuration setting."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/audit_logs/{auditLogId}",
+        "definition": {
+          "entityName": "AuditLog",
+          "schema": {
+            "$ref": "#/backend/entities/AuditLog"
+          },
+          "description": "Stores audit log entries for system activities.",
+          "params": [
+            {
+              "name": "auditLogId",
+              "description": "The unique identifier of the audit log entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the KYC management system's requirements, focusing on role-based access control, audit trails, and efficient data retrieval. Authorization Independence is achieved through path-based ownership for user-specific data and membership maps for collaborative data. The structure supports QAPs by segregating data based on access requirements (e.g., private user data vs. system configurations) and using membership maps for collaborative data access control.\n\n*   **Users:** User data is stored under `/users/{userId}` for path-based ownership, ensuring only the user and admins can access their data.\n*   **Branches:** Branch data is stored under `/branches/{branchId}`, allowing easy management of branch information.\n*   **KYCDocuments:** KYC documents are stored under `/branches/{branchId}/kyc_documents/{kycDocumentId}` to associate them with the branch that uploaded them. This structure supports efficient retrieval of documents by branch and facilitates branch-level access control.\n*   **AmendmentRequests:** Amendment requests are stored under `/branches/{branchId}/kyc_documents/{kycDocumentId}/amendment_requests/{amendmentRequestId}` to link them to specific KYC documents.\n*   **Escalations:** Escalations are stored under `/escalations/{escalationId}`. The `kycDocumentId` field allows to easily query for the escalations associated with a document.\n*   **ReviewQueue:** Review queue entries are stored under `/review_queue/{reviewQueueId}`. The `officerId` allows to easily query for the tasks of an officer.\n*   **SystemConfiguration:** System configuration settings are stored under `/system_configuration/{configId}` for centralized management.\n*   **AuditLogs:** Audit logs are stored under `/audit_logs/{auditLogId}` to maintain a record of all system activities."
+  }
+}

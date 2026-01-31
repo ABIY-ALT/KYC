@@ -1,0 +1,254 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Core Philosophy: This ruleset implements a Role-Based Access Control (RBAC) model
+     * tailored for a Know Your Customer (KYC) management system. Access is determined by
+     * a user's role (e.g., 'System Administrator', 'Supervisor', 'KYC Officer') and their
+     * association with a specific branch. The default security posture is denial of access,
+     * with permissions explicitly granted based on a user's verified identity and role.
+     *
+     * Data Structure: Data is organized into several top-level collections. User-specific
+     * data is located at `/users/{userId}`. Organizational data is nested under
+     * `/branches/{branchId}`, creating a clear hierarchy for KYC documents and their
+     * related amendment requests. Workflow collections like `/escalations` and
+     * `/review_queue`, and administrative collections like `/system_configuration` and
+     * `/audit_logs` are kept at the top level for clarity and performance.
+     *
+     * Key Security Decisions:
+     * - User data in `/users` is private to the owner, but readable by System Administrators.
+     *   User listing is disabled to prevent data leakage.
+     * - Branch-level access is enforced for KYC documents, meaning a user's role and their
+     *   `branchId` (stored on their user profile) determine their ability to interact with
+     *   data under `/branches/{branchId}`.
+     * - `/audit_logs` are immutable and write-only from the client-side. This ensures that
+     *   once an action is logged, it cannot be modified or deleted, preserving the integrity
+     *   of the audit trail.
+     * - System-wide configurations are publicly readable by any authenticated user but are
+     *   only writable by System Administrators.
+     *
+     * Denormalization for Authorization: To enable efficient and secure RBAC checks, these
+     * rules rely on denormalized data. For instance, a user's role and branch affiliation
+     * are read from their document at `/users/{request.auth.uid}`. Similarly, documents
+     * in workflow collections like `/escalations` and `/review_queue` contain denormalized
+     * `supervisorId` and `officerId` fields, allowing for direct ownership checks without
+     * complex and costly queries or lookups.
+     */
+
+    // --------------------------------------------------------------------------
+    // Helper Functions
+    // --------------------------------------------------------------------------
+
+    /**
+     * Verifies that the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     * @param userId The UID of the document owner.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * A utility function to check if a document already exists.
+     * Crucial for securing update and delete operations.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Combines ownership and existence checks for update/delete operations on user-owned data.
+     * @param userId The UID of the document owner.
+     */
+    function isOwnerOfExistingDoc(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+
+    /**
+     * Retrieves the authenticated user's profile data from the /users collection.
+     * This is the primary mechanism for fetching role and branch information.
+     * Using `get()` here allows rules to make authorization decisions based on user attributes.
+     */
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    /**
+     * Returns the role of the currently authenticated user.
+     */
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    /**
+     * Checks if the authenticated user has the 'System Administrator' role.
+     */
+    function isSystemAdmin() {
+      return isSignedIn() && getUserRole() == 'System Administrator';
+    }
+
+    /**
+     * Checks if the authenticated user has the 'Supervisor' role.
+     */
+    function isSupervisor() {
+      return isSignedIn() && getUserRole() == 'Supervisor';
+    }
+
+    /**
+     * Checks if the authenticated user has the 'KYC Officer' role.
+     */
+    function isKycOfficer() {
+      return isSignedIn() && getUserRole() == 'KYC Officer';
+    }
+
+    /**
+     * Checks if the authenticated user is associated with the given branchId.
+     * @param branchId The ID of the branch to check against the user's profile.
+     */
+    function isUserInBranch(branchId) {
+      return isSignedIn() && getUserData().branchId == branchId;
+    }
+
+    // --------------------------------------------------------------------------
+    // Collection Rules
+    // --------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) A new user creating their own profile document.
+     * @allow (get) An authenticated user reading their own profile.
+     * @allow (update) An authenticated user updating their own profile.
+     * @deny (list) Any user attempting to list all user profiles.
+     * @deny (get) A user trying to read another user's profile (unless they are an admin).
+     * @principle Restricts access to a user's own data tree and allows self-creation of a profile.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isSystemAdmin());
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwnerOfExistingDoc(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isOwnerOfExistingDoc(userId) || isSystemAdmin();
+    }
+
+    /**
+     * @description Controls access to organizational branch information.
+     * @path /branches/{branchId}
+     * @allow (get, list) Any authenticated user can read branch information.
+     * @deny (create, update, delete) A non-admin user attempting to modify branch data.
+     * @principle Treats branch data as reference information, readable by authenticated users but only manageable by administrators.
+     */
+    match /branches/{branchId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSystemAdmin();
+      allow update: if isSystemAdmin() && isExistingDoc();
+      allow delete: if isSystemAdmin() && isExistingDoc();
+
+      /**
+       * @description Controls access to KYC documents within a specific branch.
+       * @path /branches/{branchId}/kyc_documents/{kycDocumentId}
+       * @allow (get, list) A user who belongs to this branch reading documents.
+       * @allow (create) A KYC Officer in this branch creating a new document.
+       * @deny (get, list) A user from a different branch trying to access documents.
+       * @deny (create) A user without the proper role attempting to create a document.
+       * @principle Enforces branch-level data segregation and role-based write permissions.
+       */
+      match /kyc_documents/{kycDocumentId} {
+        allow get: if isUserInBranch(branchId);
+        allow list: if isUserInBranch(branchId);
+        allow create: if isUserInBranch(branchId) && (isKycOfficer() || getUserRole() == 'Branch') && request.resource.data.branchId == branchId;
+        allow update: if isUserInBranch(branchId) && isExistingDoc() && (isKycOfficer() || isSupervisor()) && request.resource.data.branchId == resource.data.branchId;
+        allow delete: if isUserInBranch(branchId) && isExistingDoc() && (isSupervisor() || isSystemAdmin());
+
+        /**
+         * @description Controls access to amendment requests for a KYC document.
+         * @path /branches/{branchId}/kyc_documents/{kycDocumentId}/amendment_requests/{amendmentRequestId}
+         * @allow (create) A KYC Officer creating a request and correctly self-assigning as the owner.
+         * @deny (update) A user trying to modify a request they did not create.
+         * @principle Enforces document ownership for writes and validates relational integrity.
+         */
+        match /amendment_requests/{amendmentRequestId} {
+          allow get: if isUserInBranch(branchId);
+          allow list: if isUserInBranch(branchId);
+          allow create: if isUserInBranch(branchId) && isKycOfficer() && request.resource.data.officerId == request.auth.uid && request.resource.data.kycDocumentId == kycDocumentId;
+          allow update: if isUserInBranch(branchId) && isExistingDoc() && (resource.data.officerId == request.auth.uid || isSupervisor());
+          allow delete: if isUserInBranch(branchId) && isExistingDoc() && (resource.data.officerId == request.auth.uid || isSupervisor());
+        }
+      }
+    }
+
+    /**
+     * @description Controls access to escalated KYC cases.
+     * @path /escalations/{escalationId}
+     * @allow (get) A Supervisor assigned to the escalation reading its details.
+     * @allow (update) The assigned Supervisor resolving the escalation.
+     * @deny (list) A regular user or Supervisor listing all escalations in the system.
+     * @deny (delete) Any user except a System Administrator deleting an escalation record.
+     * @principle Restricts access to assigned personnel and high-level roles.
+     */
+    match /escalations/{escalationId} {
+      allow get: if isSignedIn() && (resource.data.supervisorId == request.auth.uid || getUserRole() == 'Director' || isSystemAdmin());
+      allow list: if isSignedIn() && (getUserRole() == 'Director' || isSystemAdmin());
+      allow create: if isSignedIn() && (isKycOfficer() || isSupervisor());
+      allow update: if isSignedIn() && isExistingDoc() && (resource.data.supervisorId == request.auth.uid || isSystemAdmin());
+      allow delete: if isSystemAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to the KYC document review queue.
+     * @path /review_queue/{reviewQueueId}
+     * @allow (list) A Supervisor listing all items in the queue to manage assignments.
+     * @allow (get) A KYC Officer retrieving a queue item they are assigned to.
+     * @deny (update) A KYC Officer trying to modify an item not assigned to them.
+     * @principle Grants broad read access to managers and specific access to assigned individuals.
+     */
+    match /review_queue/{reviewQueueId} {
+      allow get: if isSignedIn() && (resource.data.officerId == request.auth.uid || isSupervisor() || isSystemAdmin());
+      allow list: if isSignedIn() && (isSupervisor() || isSystemAdmin());
+      allow create: if isSignedIn() && (getUserRole() == 'Branch' || isKycOfficer());
+      allow update: if isSignedIn() && isExistingDoc() && (resource.data.officerId == request.auth.uid || isSupervisor() || isSystemAdmin());
+      allow delete: if isSystemAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to system-wide configuration settings.
+     * @path /system_configuration/{configId}
+     * @allow (get, list) Any authenticated user can read system settings.
+     * @deny (create, update, delete) A non-admin user attempting to change system configuration.
+     * @principle Enforces read-only access for general users, with write access reserved for administrators.
+     */
+    match /system_configuration/{configId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSystemAdmin();
+      allow update: if isSystemAdmin() && isExistingDoc();
+      allow delete: if isSystemAdmin() && isExistingDoc();
+    }
+
+    /**
+     * @description Controls access to the audit logs, making them immutable.
+     * @path /audit_logs/{auditLogId}
+     * @allow (create) An authenticated user creating a log entry for an action they performed.
+     * @deny (get, list) Any user attempting to read the audit logs from the client.
+     * @deny (update, delete) Any user attempting to modify or delete a log entry.
+     * @principle Secures audit trail integrity by making logs write-once and preventing any modification or deletion.
+     */
+    match /audit_logs/{auditLogId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
