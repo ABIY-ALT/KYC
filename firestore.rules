@@ -134,7 +134,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isSystemAdmin());
-      allow list: if isSystemAdmin();
+      allow list: if isSignedIn();
       allow create: if (isSignedIn() && isOwner(userId) && request.resource.data.id == userId) || isSystemAdmin();
       allow update: if (isOwnerOfExistingDoc(userId) && request.resource.data.id == resource.data.id) || isSystemAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isSystemAdmin();
