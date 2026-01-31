@@ -39,13 +39,16 @@ import { MoreHorizontal, PlusCircle, Edit, UserX, UserCheck } from "lucide-react
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { users as initialUsers, User, branchPerformanceData, districtPerformanceData } from "@/lib/data";
+import { type User, branchPerformanceData, districtPerformanceData } from "@/lib/data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { useFirestore, useCollection, setDocumentNonBlocking, updateDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const userSchema = z.object({
@@ -78,9 +81,10 @@ function UserForm({ user, onSave, onOpenChange }: { user: Partial<User> | null, 
   const { toast } = useToast();
 
   const onSubmit = (data: z.infer<typeof userSchema>) => {
+    const firestore = useFirestore();
     const userToSave: User = {
         ...data,
-        id: user?.id || `usr-${Math.random().toString(36).substring(2, 9)}`,
+        id: user?.id || doc(collection(firestore, 'users')).id,
     };
     onSave(userToSave);
     toast({
@@ -177,28 +181,25 @@ function UserForm({ user, onSave, onOpenChange }: { user: Partial<User> | null, 
 }
 
 export default function UserManagementPage() {
-    const [users, setUsers] = useState<User[]>(initialUsers);
+    const firestore = useFirestore();
+    const usersQuery = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
+    const { data: users, isLoading } = useCollection<User>(usersQuery);
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const userAvatars = PlaceHolderImages.filter(img => img.id.includes('user-avatar'));
     const { toast } = useToast();
 
     const handleSaveUser = (user: User) => {
-        setUsers(currentUsers => {
-            const userExists = currentUsers.some(u => u.id === user.id);
-            if (userExists) {
-                return currentUsers.map(u => u.id === user.id ? user : u);
-            }
-            return [...currentUsers, user];
-        });
+        const userRef = doc(firestore, 'users', user.id);
+        setDocumentNonBlocking(userRef, user, { merge: true });
     };
 
-    const handleToggleStatus = (userId: string) => {
-        setUsers(currentUsers =>
-            currentUsers.map(u =>
-                u.id === userId ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u
-            )
-        );
+    const handleToggleStatus = (userId: string, currentStatus: 'Active' | 'Inactive') => {
+        const userRef = doc(firestore, 'users', userId);
+        const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+        updateDocumentNonBlocking(userRef, { status: newStatus });
+
         toast({
             title: "User Status Updated",
             description: "The user's status has been changed.",
@@ -241,7 +242,24 @@ export default function UserManagementPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user, index) => (
+                        {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                             <TableRow key={i}>
+                                <TableCell>
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-9 w-9 rounded-full" />
+                                        <div className="grid gap-1">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-3 w-32" />
+                                        </div>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
+                                <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8" /></TableCell>
+                            </TableRow>
+                        ))}
+                        {!isLoading && users && users.map((user, index) => (
                             <TableRow key={user.id}>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -275,7 +293,7 @@ export default function UserManagementPage() {
                                             <DropdownMenuItem onClick={() => handleEditUser(user)}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleToggleStatus(user.id)}>
+                                            <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
                                                 {user.status === 'Active' ? (
                                                     <><UserX className="mr-2 h-4 w-4" /> Deactivate</>
                                                 ) : (

@@ -19,7 +19,7 @@ service cloud.firestore {
      *
      * Key Security Decisions:
      * - User data in `/users` is private to the owner, but readable by System Administrators.
-     *   User listing is disabled to prevent data leakage.
+     *   User listing is enabled for System Administrators to support user management UIs.
      * - Branch-level access is enforced for KYC documents, meaning a user's role and their
      *   `branchId` (stored on their user profile) determine their ability to interact with
      *   data under `/branches/{branchId}`.
@@ -125,18 +125,18 @@ service cloud.firestore {
     /**
      * @description Controls access to user profiles.
      * @path /users/{userId}
-     * @allow (create) A new user creating their own profile document.
-     * @allow (get) An authenticated user reading their own profile.
-     * @allow (update) An authenticated user updating their own profile.
-     * @deny (list) Any user attempting to list all user profiles.
-     * @deny (get) A user trying to read another user's profile (unless they are an admin).
-     * @principle Restricts access to a user's own data tree and allows self-creation of a profile.
+     * @allow (create) A new user creating their own profile or an admin creating a user.
+     * @allow (get) An authenticated user reading their own profile or an admin reading any profile.
+     * @allow (list) An admin listing all users.
+     * @allow (update) An authenticated user updating their own profile or an admin updating any profile.
+     * @allow (delete) An authenticated user deleting their own profile or an admin deleting any profile.
+     * @principle Restricts access to a user's own data tree, but grants full CRUD to admins for user management.
      */
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isSystemAdmin());
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwnerOfExistingDoc(userId) && request.resource.data.id == resource.data.id;
+      allow list: if isSystemAdmin();
+      allow create: if (isSignedIn() && isOwner(userId) && request.resource.data.id == userId) || isSystemAdmin();
+      allow update: if (isOwnerOfExistingDoc(userId) && request.resource.data.id == resource.data.id) || isSystemAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isSystemAdmin();
     }
 
