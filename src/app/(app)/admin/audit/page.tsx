@@ -152,7 +152,7 @@ export default function AuditLogsPage() {
                                 <SelectTrigger id="user-filter"><SelectValue placeholder="Select User" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Users</SelectItem>
-                                    {allUsers.map(user => <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>)}
+                                    {allUsers.map(user => <SelectItem key={user.id} value={user.id}>{user.firstName} {user.lastName}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -250,3 +250,4 @@ export default function AuditLogsPage() {
         </div>
     );
 }
+    

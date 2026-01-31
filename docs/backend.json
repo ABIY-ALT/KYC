@@ -12,7 +12,7 @@
         },
         "username": {
           "type": "string",
-          "description": "The username of the user."
+          "description": "The unique username of the user."
         },
         "firstName": {
           "type": "string",
@@ -29,11 +29,29 @@
         },
         "role": {
           "type": "string",
-          "description": "The role of the user within the system (e.g., Branch, KYC Officer, Supervisor, Director, System Administrator)."
+          "description": "The role of the user within the system.",
+          "enum": [
+            "Admin",
+            "Supervisor",
+            "Officer",
+            "Branch Manager"
+          ]
         },
-        "branchId": {
+        "branch": {
           "type": "string",
-          "description": "Reference to Branch. (Relationship: Branch 1:N User).  Null if user is not associated with a branch."
+          "description": "The branch the user is associated with."
+        },
+        "district": {
+          "type": "string",
+          "description": "The district the user is associated with."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the user account.",
+          "enum": [
+            "Active",
+            "Inactive"
+          ]
         }
       },
       "required": [
@@ -42,7 +60,10 @@
         "firstName",
         "lastName",
         "email",
-        "role"
+        "role",
+        "branch",
+        "district",
+        "status"
       ]
     },
     "Branch": {
@@ -469,3 +490,4 @@
     "reasoning": "The Firestore data structure is designed to support the KYC management system's requirements, focusing on role-based access control, audit trails, and efficient data retrieval. Authorization Independence is achieved through path-based ownership for user-specific data and membership maps for collaborative data. The structure supports QAPs by segregating data based on access requirements (e.g., private user data vs. system configurations) and using membership maps for collaborative data access control.\n\n*   **Users:** User data is stored under `/users/{userId}` for path-based ownership, ensuring only the user and admins can access their data.\n*   **Branches:** Branch data is stored under `/branches/{branchId}`, allowing easy management of branch information.\n*   **KYCDocuments:** KYC documents are stored under `/branches/{branchId}/kyc_documents/{kycDocumentId}` to associate them with the branch that uploaded them. This structure supports efficient retrieval of documents by branch and facilitates branch-level access control.\n*   **AmendmentRequests:** Amendment requests are stored under `/branches/{branchId}/kyc_documents/{kycDocumentId}/amendment_requests/{amendmentRequestId}` to link them to specific KYC documents.\n*   **Escalations:** Escalations are stored under `/escalations/{escalationId}`. The `kycDocumentId` field allows to easily query for the escalations associated with a document.\n*   **ReviewQueue:** Review queue entries are stored under `/review_queue/{reviewQueueId}`. The `officerId` allows to easily query for the tasks of an officer.\n*   **SystemConfiguration:** System configuration settings are stored under `/system_configuration/{configId}` for centralized management.\n*   **AuditLogs:** Audit logs are stored under `/audit_logs/{auditLogId}` to maintain a record of all system activities."
   }
 }
+    

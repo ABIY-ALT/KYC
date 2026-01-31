@@ -53,7 +53,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const userSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, "Name must be at least 2 characters."),
+  username: z.string().min(3, "Username must be at least 3 characters."),
+  firstName: z.string().min(2, "First name must be at least 2 characters."),
+  lastName: z.string().min(2, "Last name must be at least 2 characters."),
   email: z.string().email("Invalid email address."),
   role: z.enum(['Admin', 'Supervisor', 'Officer', 'Branch Manager']),
   branch: z.string().min(1, "Branch is required."),
@@ -70,7 +72,9 @@ function UserForm({ user, onSave, onOpenChange }: { user: Partial<User> | null, 
     resolver: zodResolver(userSchema),
     defaultValues: {
       id: user?.id,
-      name: user?.name || "",
+      username: user?.username || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || "",
       role: user?.role || 'Officer',
       branch: user?.branch || "",
@@ -89,7 +93,7 @@ function UserForm({ user, onSave, onOpenChange }: { user: Partial<User> | null, 
     onSave(userToSave);
     toast({
         title: user?.id ? "User Updated" : "User Created",
-        description: `${userToSave.name} has been successfully saved.`,
+        description: `${userToSave.firstName} ${userToSave.lastName} has been successfully saved.`,
     });
     onOpenChange(false);
   };
@@ -104,13 +108,29 @@ function UserForm({ user, onSave, onOpenChange }: { user: Partial<User> | null, 
       </DialogHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-            <FormField control={form.control} name="name" render={({ field }) => (
+            <FormField control={form.control} name="username" render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl><Input placeholder="John Doe" {...field} /></FormControl>
+                    <FormLabel>Username</FormLabel>
+                    <FormControl><Input placeholder="johndoe" {...field} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )} />
+             <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="firstName" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl><Input placeholder="John" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="lastName" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl><Input placeholder="Doe" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            </div>
             <FormField control={form.control} name="email" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Email Address</FormLabel>
@@ -264,11 +284,11 @@ export default function UserManagementPage() {
                                 <TableCell>
                                     <div className="flex items-center gap-3">
                                         <Avatar className="h-9 w-9">
-                                            <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={user.name} data-ai-hint="person portrait" />
-                                            <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                            <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={`${user.firstName} ${user.lastName}`} data-ai-hint="person portrait" />
+                                            <AvatarFallback>{user.firstName.slice(0, 1)}{user.lastName.slice(0, 1)}</AvatarFallback>
                                         </Avatar>
                                         <div className="grid gap-1">
-                                            <p className="font-medium">{user.name}</p>
+                                            <p className="font-medium">{user.firstName} {user.lastName}</p>
                                             <p className="text-sm text-muted-foreground">{user.email}</p>
                                         </div>
                                     </div>
@@ -313,3 +333,4 @@ export default function UserManagementPage() {
     </Dialog>
   );
 }
+    
