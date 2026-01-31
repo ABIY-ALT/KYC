@@ -16,10 +16,12 @@ export default function AppSidebar() {
           <AppNav />
         </ScrollArea>
         <div className="mt-auto p-4 space-y-2 border-t">
-            <Button variant="ghost" className="w-full justify-start">
-                <CircleUser className="mr-2 h-4 w-4" />
-                My Profile
-            </Button>
+            <Link href="/profile" passHref>
+              <Button variant="ghost" className="w-full justify-start">
+                  <CircleUser className="mr-2 h-4 w-4" />
+                  My Profile
+              </Button>
+            </Link>
             <Button variant="ghost" className="w-full justify-start">
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
