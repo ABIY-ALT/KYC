@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Calendar, User, Building, Check, Send } from "lucide-react";
 import { format } from "date-fns";
-import { AIComplianceCheck } from "@/components/ai-compliance-check";
 import { AmendmentDialog } from "@/components/amendment-dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -100,8 +99,6 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                         ))}
                     </CardContent>
                 </Card>
-
-                <AIComplianceCheck documentText={submission.details} />
                 
                 <ActionButtons submissionId={submission.id} />
             </div>
