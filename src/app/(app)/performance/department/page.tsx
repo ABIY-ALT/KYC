@@ -1,13 +1,6 @@
 "use client";
 
 import {
-    TrendingUp,
-    Clock,
-    AlertOctagon,
-    CheckCheck,
-    type LucideIcon,
-} from "lucide-react";
-import {
     Card,
     CardContent,
     CardDescription,
@@ -39,26 +32,17 @@ const chartConfigPie = {
     }), {})
 };
 
-const iconMap: { [key: string]: LucideIcon } = {
-    TrendingUp,
-    Clock,
-    AlertOctagon,
-    CheckCheck,
-};
-
 export default function DepartmentPerformancePage() {
     return (
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                 {departmentKpiData.map((kpi, index) => {
-                    const Icon = iconMap[kpi.icon];
                     return (
                         <Card key={index}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">
                                     {kpi.label}
                                 </CardTitle>
-                                {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">{kpi.value}</div>

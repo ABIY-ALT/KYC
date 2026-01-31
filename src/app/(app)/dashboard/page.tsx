@@ -1,9 +1,6 @@
 "use client";
 
 import {
-    Activity,
-} from "lucide-react";
-import {
     Avatar,
     AvatarFallback,
     AvatarImage,
@@ -37,7 +34,6 @@ export default function DashboardPage() {
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
-                            <Activity className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{kpi.value.toLocaleString()}</div>

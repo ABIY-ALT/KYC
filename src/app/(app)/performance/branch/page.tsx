@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { branchPerformanceData } from "@/lib/data";
-import { Files, CheckCircle, Pencil, Clock } from "lucide-react";
 
 export default function BranchPerformancePage() {
     const totalSubmissions = branchPerformanceData.reduce((acc, branch) => acc + branch.totalSubmissions, 0);
@@ -26,10 +25,10 @@ export default function BranchPerformancePage() {
     const avgTurnaround = branchPerformanceData.reduce((acc, branch, _, arr) => acc + branch.avgTurnaroundTime / arr.length, 0);
 
     const kpis = [
-        { label: "Total KYC Volume", value: totalSubmissions.toLocaleString(), icon: Files, unit: "Submissions" },
-        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%`, icon: CheckCircle, unit: "Across all branches" },
-        { label: "Total Amendments", value: totalAmendments.toLocaleString(), icon: Pencil, unit: "Requests" },
-        { label: "Avg. Turnaround", value: `${avgTurnaround.toFixed(1)} days`, icon: Clock, unit: "From submission to decision" },
+        { label: "Total KYC Volume", value: totalSubmissions.toLocaleString(), unit: "Submissions" },
+        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%`, unit: "Across all branches" },
+        { label: "Total Amendments", value: totalAmendments.toLocaleString(), unit: "Requests" },
+        { label: "Avg. Turnaround", value: `${avgTurnaround.toFixed(1)} days`, unit: "From submission to decision" },
     ];
 
     return (
@@ -41,7 +40,6 @@ export default function BranchPerformancePage() {
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
-                            <kpi.icon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{kpi.value}</div>

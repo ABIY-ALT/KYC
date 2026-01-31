@@ -19,7 +19,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { officerPerformanceData } from "@/lib/data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { Users, FileStack, Clock, TrendingUp } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 
@@ -31,10 +30,10 @@ export default function OfficerPerformancePage() {
     const avgProcessingTime = officerPerformanceData.reduce((acc, officer, _, arr) => acc + officer.avgProcessingTime / arr.length, 0);
 
     const kpis = [
-        { label: "Total Cases Reviewed", value: totalCases.toLocaleString(), icon: FileStack },
-        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%`, icon: TrendingUp },
-        { label: "Avg. Processing Time", value: `${avgProcessingTime.toFixed(1)} hrs`, icon: Clock },
-        { label: "Total Officers", value: officerPerformanceData.length, icon: Users },
+        { label: "Total Cases Reviewed", value: totalCases.toLocaleString() },
+        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%` },
+        { label: "Avg. Processing Time", value: `${avgProcessingTime.toFixed(1)} hrs` },
+        { label: "Total Officers", value: officerPerformanceData.length },
     ];
 
 
@@ -47,7 +46,6 @@ export default function OfficerPerformancePage() {
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
-                            <kpi.icon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{kpi.value}</div>

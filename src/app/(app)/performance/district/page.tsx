@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { districtPerformanceData } from "@/lib/data";
-import { Warehouse, TrendingUp, Clock, Building } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
@@ -28,10 +27,10 @@ export default function DistrictPerformancePage() {
     const totalBranches = districtPerformanceData.reduce((acc, district) => acc + district.branchCount, 0);
 
     const kpis = [
-        { label: "Total KYC Volume", value: totalSubmissions.toLocaleString(), icon: Warehouse },
-        { label: "Total Branches", value: totalBranches, icon: Building },
-        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%`, icon: TrendingUp },
-        { label: "Avg. Turnaround", value: `${avgTurnaround.toFixed(1)} days`, icon: Clock },
+        { label: "Total KYC Volume", value: totalSubmissions.toLocaleString() },
+        { label: "Total Branches", value: totalBranches },
+        { label: "Avg. Approval Rate", value: `${avgApprovalRate.toFixed(1)}%` },
+        { label: "Avg. Turnaround", value: `${avgTurnaround.toFixed(1)} days` },
     ];
     
     const chartConfig = {
@@ -50,7 +49,6 @@ export default function DistrictPerformancePage() {
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
-                            <kpi.icon className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{kpi.value}</div>
