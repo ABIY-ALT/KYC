@@ -269,3 +269,95 @@ export const users: User[] = [
   { id: 'off-003', name: 'Ethan Hunt', email: 'ethan.hunt@kycflow.com', role: 'Officer', branch: 'Eastside', district: 'Suburban District', status: 'Active' },
   { id: 'off-004', name: 'Fiona Glenanne', email: 'fiona.glenanne@kycflow.com', role: 'Officer', branch: 'Westend', district: 'Suburban District', status: 'Active' },
 ];
+
+export type AuditLog = {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName:string;
+  userAvatar: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details: string;
+};
+
+export const auditLogs: AuditLog[] = [
+  {
+    id: 'log-001',
+    timestamp: '2023-10-27T14:30:00Z',
+    userId: 'usr-admin',
+    userName: 'Alex Ray',
+    userAvatar: 'user-avatar-3',
+    action: 'USER_LOGIN_SUCCESS',
+    entityType: 'User',
+    entityId: 'usr-admin',
+    details: 'User logged in from IP: 192.168.1.100',
+  },
+  {
+    id: 'log-002',
+    timestamp: '2023-10-27T14:05:00Z',
+    userId: 'off-001',
+    userName: 'Charlie Davis',
+    userAvatar: 'user-avatar-1',
+    action: 'UPDATE_SUBMISSION_STATUS',
+    entityType: 'Submission',
+    entityId: 'SUB002',
+    details: 'Changed status from "Pending" to "Approved"',
+  },
+  {
+    id: 'log-003',
+    timestamp: '2023-10-27T13:45:00Z',
+    userId: 'usr-admin',
+    userName: 'Alex Ray',
+    userAvatar: 'user-avatar-3',
+    action: 'CREATE_USER',
+    entityType: 'User',
+    entityId: 'off-006',
+    details: 'Created new user: Hannah Wells (off-006) with role Officer',
+  },
+  {
+    id: 'log-004',
+    timestamp: '2023-10-27T12:10:00Z',
+    userId: 'off-002',
+    userName: 'Diana Prince',
+    userAvatar: 'user-avatar-2',
+    action: 'REQUEST_AMENDMENT',
+    entityType: 'Submission',
+    entityId: 'SUB003',
+    details: 'Reason: "The provided ID is blurry. Please upload a clearer copy."',
+  },
+  {
+    id: 'log-005',
+    timestamp: '2023-10-27T11:00:00Z',
+    userId: 'usr-sup-1',
+    userName: 'Samuel Jones',
+    userAvatar: 'user-avatar-4',
+    action: 'ESCALATE_SUBMISSION',
+    entityType: 'Submission',
+    entityId: 'SUB004',
+    details: 'Escalated due to expired document.',
+  },
+  {
+    id: 'log-006',
+    timestamp: '2023-10-26T18:00:00Z',
+    userId: 'usr-admin',
+    userName: 'Alex Ray',
+    userAvatar: 'user-avatar-3',
+    action: 'UPDATE_SYSTEM_SETTING',
+    entityType: 'System',
+    entityId: 'sla-thresholds',
+    details: 'Changed Review SLA from 24 hours to 36 hours.',
+  },
+   {
+    id: 'log-007',
+    timestamp: '2023-10-26T17:30:00Z',
+    userId: 'usr-admin',
+    userName: 'Alex Ray',
+    userAvatar: 'user-avatar-3',
+    action: 'DEACTIVATE_USER',
+    entityType: 'User',
+    entityId: 'usr-man-1',
+    details: 'Deactivated user: Maria Garcia (usr-man-1)',
+  },
+];
