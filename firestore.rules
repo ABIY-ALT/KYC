@@ -133,7 +133,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree, but grants full CRUD to admins for user management.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && (isOwner(userId) || isSystemAdmin());
+      allow get: if isSignedIn();
       allow list: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isSignedIn();
