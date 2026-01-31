@@ -149,3 +149,26 @@ export const officerPerformanceData: OfficerPerformanceData[] = [
   { id: 'off-005', name: 'George Mason', team: 'Charlie', casesReviewed: 95, approvalRate: 88, amendmentRate: 10, escalationRate: 2, avgProcessingTime: 7.3 },
   { id: 'off-006', name: 'Hannah Wells', team: 'Charlie', casesReviewed: 133, approvalRate: 91, amendmentRate: 6, escalationRate: 3, avgProcessingTime: 5.9 },
 ];
+
+export type DepartmentKpi = {
+  label: string;
+  value: string;
+  change: number;
+  unit: string;
+  icon: 'TrendingUp' | 'Clock' | 'AlertOctagon' | 'CheckCheck';
+};
+
+export const departmentKpiData: DepartmentKpi[] = [
+    { label: "Overall Approval Rate", value: "88.2%", change: 1.2, unit: "% vs last period", icon: 'TrendingUp' },
+    { label: "Average Turnaround Time", value: "1.9 Days", change: -0.3, unit: " Days vs last period", icon: 'Clock' },
+    { label: "Total Escalations", value: "18", change: 5, unit: " cases vs last period", icon: 'AlertOctagon' },
+    { label: "SLA Compliance", value: "97.5%", change: 0.5, unit: "% vs last period", icon: 'CheckCheck' },
+];
+
+export const statusDistributionData = [
+  { status: 'Approved', count: 982, fill: 'hsl(var(--chart-1))' },
+  { status: 'Pending', count: 78, fill: 'hsl(var(--chart-2))' },
+  { status: 'Amendment', count: 153, fill: 'hsl(var(--chart-3))' },
+  { status: 'Rejected', count: 21, fill: 'hsl(var(--chart-4))' },
+  { status: 'Escalated', count: 18, fill: 'hsl(var(--chart-5))' },
+];
