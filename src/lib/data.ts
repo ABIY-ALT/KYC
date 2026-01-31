@@ -130,6 +130,23 @@ export const branchPerformanceData: BranchPerformanceData[] = [
   { id: 'branch-05', name: 'North', totalSubmissions: 510, approvalRate: 95, amendmentCount: 10, avgTurnaroundTime: 0.7, slaCompliance: 100 },
 ];
 
+export type DistrictPerformanceData = {
+  id: string;
+  name: string;
+  totalSubmissions: number;
+  approvalRate: number;
+  avgTurnaroundTime: number; // in days
+  slaCompliance: number; // as a percentage
+  branchCount: number;
+};
+
+export const districtPerformanceData: DistrictPerformanceData[] = [
+  { id: 'dist-01', name: 'Metro District', totalSubmissions: 770, approvalRate: 88, avgTurnaroundTime: 1.0, slaCompliance: 98, branchCount: 2 },
+  { id: 'dist-02', name: 'Suburban District', totalSubmissions: 430, approvalRate: 85, avgTurnaroundTime: 1.8, slaCompliance: 96, branchCount: 2 },
+  { id: 'dist-03', name: 'Northern District', totalSubmissions: 510, approvalRate: 95, avgTurnaroundTime: 0.7, slaCompliance: 100, branchCount: 1 },
+];
+
+
 export type OfficerPerformanceData = {
   id: string;
   name: string;
