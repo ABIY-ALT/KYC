@@ -111,3 +111,21 @@ export const submissionTrendData = [
     { date: 'May', submissions: 600 },
     { date: 'Jun', submissions: 700 },
 ];
+
+export type BranchPerformanceData = {
+  id: string;
+  name: string;
+  totalSubmissions: number;
+  approvalRate: number;
+  amendmentCount: number;
+  avgTurnaroundTime: number; // in days
+  slaCompliance: number; // as a percentage
+};
+
+export const branchPerformanceData: BranchPerformanceData[] = [
+  { id: 'branch-01', name: 'Downtown', totalSubmissions: 450, approvalRate: 85, amendmentCount: 45, avgTurnaroundTime: 1.2, slaCompliance: 98 },
+  { id: 'branch-02', name: 'Uptown', totalSubmissions: 320, approvalRate: 92, amendmentCount: 15, avgTurnaroundTime: 0.8, slaCompliance: 99 },
+  { id: 'branch-03', name: 'Eastside', totalSubmissions: 280, approvalRate: 78, amendmentCount: 60, avgTurnaroundTime: 2.1, slaCompliance: 95 },
+  { id: 'branch-04', name: 'Westend', totalSubmissions: 150, approvalRate: 88, amendmentCount: 20, avgTurnaroundTime: 1.5, slaCompliance: 97 },
+  { id: 'branch-05', name: 'North', totalSubmissions: 510, approvalRate: 95, amendmentCount: 10, avgTurnaroundTime: 0.7, slaCompliance: 100 },
+];
