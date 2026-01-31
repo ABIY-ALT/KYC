@@ -92,7 +92,7 @@ export function AppNav({ isMobile = false }: { isMobile?: boolean }) {
   );
 
   const renderNavGroup = (group: NavGroup) => (
-    <Accordion type="single" collapsible className="w-full" defaultValue={group.items.some(item => pathname.startsWith(item.href)) ? group.title : undefined}>
+    <Accordion key={group.title} type="single" collapsible className="w-full" defaultValue={group.items.some(item => pathname.startsWith(item.href)) ? group.title : undefined}>
       <AccordionItem value={group.title} className="border-b-0">
         <AccordionTrigger className="py-2 text-sm font-medium hover:no-underline rounded-md px-3 hover:bg-muted [&[data-state=open]>svg]:-rotate-90">
           {group.title}
