@@ -125,18 +125,18 @@ service cloud.firestore {
     /**
      * @description Controls access to user profiles.
      * @path /users/{userId}
-     * @allow (create) An authenticated user creating a user.
+     * @allow (create) An authenticated user creating their own user profile document.
      * @allow (get) An authenticated user reading their own profile or an admin reading any profile.
      * @allow (list) An admin listing all users.
-     * @allow (update) An authenticated user updating any profile.
+     * @allow (update) An authenticated user updating their own profile or an admin updating any profile.
      * @allow (delete) An authenticated user deleting their own profile or an admin deleting any profile.
      * @principle Restricts access to a user's own data tree, but grants full CRUD to admins for user management.
      */
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow get: if isOwner(userId) || isSystemAdmin();
+      allow list: if isSystemAdmin();
+      allow create: if request.auth.uid == userId;
+      allow update: if isOwner(userId) || isSystemAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isSystemAdmin();
     }
 
