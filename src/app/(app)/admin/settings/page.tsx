@@ -37,6 +37,15 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Mock data for settings
 const initialRoles = [
@@ -77,6 +86,8 @@ export default function SystemSettingsPage() {
   
   // State for roles
   const [roles, setRoles] = useState(initialRoles);
+  const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
 
   const handleSave = (section: string) => {
     // In a real app, this would save to a backend.
@@ -109,6 +120,27 @@ export default function SystemSettingsPage() {
       }
       return role;
     }));
+  };
+
+  const handleAddNewRole = () => {
+    if (!newRoleName.trim()) {
+      toast({ title: 'Error', description: 'Role name cannot be empty.', variant: 'destructive' });
+      return;
+    }
+    const newRoleId = newRoleName.trim().toLowerCase().replace(/\s+/g, '_');
+    if (roles.some(role => role.id === newRoleId)) {
+      toast({ title: 'Error', description: 'This role already exists.', variant: 'destructive' });
+      return;
+    }
+    const newRole = {
+      id: newRoleId,
+      name: newRoleName.trim(),
+      permissions: [],
+    };
+    setRoles([...roles, newRole]);
+    setNewRoleName('');
+    setIsAddRoleDialogOpen(false);
+    toast({ title: 'Role Added', description: `Role "${newRoleName.trim()}" has been added.` });
   };
 
   return (
@@ -175,10 +207,42 @@ export default function SystemSettingsPage() {
         <TabsContent value="roles">
           <Card>
             <CardHeader>
-              <CardTitle>Roles & Permissions</CardTitle>
-              <CardDescription>
-                Define what users in different roles can see and do.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Roles & Permissions</CardTitle>
+                  <CardDescription>
+                    Define what users in different roles can see and do.
+                  </CardDescription>
+                </div>
+                <Dialog open={isAddRoleDialogOpen} onOpenChange={setIsAddRoleDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <PlusCircle className="mr-2" /> Add New Role
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Role</DialogTitle>
+                      <DialogDescription>Enter the name for the new role.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="new-role-name">Role Name</Label>
+                        <Input
+                          id="new-role-name"
+                          value={newRoleName}
+                          onChange={(e) => setNewRoleName(e.target.value)}
+                          placeholder="e.g., Compliance Auditor"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddRoleDialogOpen(false)}>Cancel</Button>
+                      <Button onClick={handleAddNewRole}>Save Role</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
