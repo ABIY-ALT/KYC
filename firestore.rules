@@ -6,7 +6,7 @@ service cloud.firestore {
     /**
      * Core Philosophy: This ruleset implements a Role-Based Access Control (RBAC) model
      * tailored for a Know Your Customer (KYC) management system. Access is determined by
-     * a user's role (e.g., 'System Administrator', 'Supervisor', 'KYC Officer') and their
+     * a user's role (e.g., 'Admin', 'Supervisor', 'Officer') and their
      * association with a specific branch. The default security posture is denial of access,
      * with permissions explicitly granted based on a user's verified identity and role.
      *
@@ -18,8 +18,8 @@ service cloud.firestore {
      * `/audit_logs` are kept at the top level for clarity and performance.
      *
      * Key Security Decisions:
-     * - User data in `/users` is private to the owner, but readable by System Administrators.
-     *   User listing is enabled for System Administrators to support user management UIs.
+     * - User data in `/users` is private to the owner, but readable by Admins.
+     *   User listing is enabled for Admins to support user management UIs.
      * - Branch-level access is enforced for KYC documents, meaning a user's role and their
      *   `branchId` (stored on their user profile) determine their ability to interact with
      *   data under `/branches/{branchId}`.
@@ -27,7 +27,7 @@ service cloud.firestore {
      *   once an action is logged, it cannot be modified or deleted, preserving the integrity
      *   of the audit trail.
      * - System-wide configurations are publicly readable by any authenticated user but are
-     *   only writable by System Administrators.
+     *   only writable by Admins.
      *
      * Denormalization for Authorization: To enable efficient and secure RBAC checks, these
      * rules rely on denormalized data. For instance, a user's role and branch affiliation
@@ -90,10 +90,10 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the authenticated user has the 'System Administrator' role.
+     * Checks if the authenticated user has the 'Admin' role.
      */
     function isSystemAdmin() {
-      return isSignedIn() && getUserRole() == 'System Administrator';
+      return isSignedIn() && getUserRole() == 'Admin';
     }
 
     /**
@@ -104,10 +104,10 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the authenticated user has the 'KYC Officer' role.
+     * Checks if the authenticated user has the 'Officer' role.
      */
     function isKycOfficer() {
-      return isSignedIn() && getUserRole() == 'KYC Officer';
+      return isSignedIn() && getUserRole() == 'Officer';
     }
 
     /**
@@ -166,7 +166,7 @@ service cloud.firestore {
       match /kyc_documents/{kycDocumentId} {
         allow get: if isUserInBranch(branchId);
         allow list: if isUserInBranch(branchId);
-        allow create: if isUserInBranch(branchId) && (isKycOfficer() || getUserRole() == 'Branch') && request.resource.data.branchId == branchId;
+        allow create: if isUserInBranch(branchId) && (isKycOfficer() || getUserRole() == 'Branch Manager') && request.resource.data.branchId == branchId;
         allow update: if isUserInBranch(branchId) && isExistingDoc() && (isKycOfficer() || isSupervisor()) && request.resource.data.branchId == resource.data.branchId;
         allow delete: if isUserInBranch(branchId) && isExistingDoc() && (isSupervisor() || isSystemAdmin());
 
@@ -197,8 +197,8 @@ service cloud.firestore {
      * @principle Restricts access to assigned personnel and high-level roles.
      */
     match /escalations/{escalationId} {
-      allow get: if isSignedIn() && (resource.data.supervisorId == request.auth.uid || getUserRole() == 'Director' || isSystemAdmin());
-      allow list: if isSignedIn() && (getUserRole() == 'Director' || isSystemAdmin());
+      allow get: if isSignedIn() && (resource.data.supervisorId == request.auth.uid || isSystemAdmin());
+      allow list: if isSignedIn() && isSystemAdmin();
       allow create: if isSignedIn() && (isKycOfficer() || isSupervisor());
       allow update: if isSignedIn() && isExistingDoc() && (resource.data.supervisorId == request.auth.uid || isSystemAdmin());
       allow delete: if isSystemAdmin() && isExistingDoc();
@@ -215,7 +215,7 @@ service cloud.firestore {
     match /review_queue/{reviewQueueId} {
       allow get: if isSignedIn() && (resource.data.officerId == request.auth.uid || isSupervisor() || isSystemAdmin());
       allow list: if isSignedIn() && (isSupervisor() || isSystemAdmin());
-      allow create: if isSignedIn() && (getUserRole() == 'Branch' || isKycOfficer());
+      allow create: if isSignedIn() && (getUserRole() == 'Branch Manager' || isKycOfficer());
       allow update: if isSignedIn() && isExistingDoc() && (resource.data.officerId == request.auth.uid || isSupervisor() || isSystemAdmin());
       allow delete: if isSystemAdmin() && isExistingDoc();
     }
