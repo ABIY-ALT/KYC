@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
@@ -51,6 +51,7 @@ export default function AppHeader({ user }: { user: User | null }) {
             <div className="flex h-16 items-center border-b px-6">
                 <Logo />
             </div>
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <ScrollArea className="flex-1 py-2">
                 <AppNav isMobile />
             </ScrollArea>
