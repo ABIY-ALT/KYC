@@ -125,7 +125,7 @@ service cloud.firestore {
     /**
      * @description Controls access to user profiles.
      * @path /users/{userId}
-     * @allow (create) An authenticated user creating their own user profile document.
+     * @allow (create) An authenticated user creating their own profile, or an Admin creating any profile.
      * @allow (get) An authenticated user reading their own profile or an admin reading any profile.
      * @allow (list) An admin listing all users.
      * @allow (update) An authenticated user updating their own profile or an admin updating any profile.
@@ -135,7 +135,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isSystemAdmin();
       allow list: if isSystemAdmin();
-      allow create: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId || isSystemAdmin();
       allow update: if isOwner(userId) || isSystemAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isSystemAdmin();
     }
