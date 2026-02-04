@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     Card,
     CardContent,
@@ -20,6 +21,17 @@ import { Badge } from "@/components/ui/badge";
 import { officerPerformanceData } from "@/lib/data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 
 export default function OfficerPerformancePage() {
@@ -35,6 +47,36 @@ export default function OfficerPerformancePage() {
         { label: "Avg. Processing Time", value: `${avgProcessingTime.toFixed(1)} hrs` },
         { label: "Total Officers", value: officerPerformanceData.length },
     ];
+    
+    const [filteredData, setFilteredData] = useState(officerPerformanceData);
+    const [filters, setFilters] = useState({
+        name: '',
+        team: 'all',
+    });
+
+    const uniqueTeams = [...new Set(officerPerformanceData.map(item => item.team))];
+
+    const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+        setFilters(prev => ({ ...prev, [filterName]: value }));
+    };
+    
+    const handleResetFilters = () => {
+        setFilters({ name: '', team: 'all' });
+    }
+
+    useEffect(() => {
+        let data = officerPerformanceData;
+
+        if (filters.team !== 'all') {
+            data = data.filter(officer => officer.team === filters.team);
+        }
+        
+        if (filters.name) {
+            data = data.filter(officer => officer.name.toLowerCase().includes(filters.name.toLowerCase()));
+        }
+
+        setFilteredData(data);
+    }, [filters]);
 
 
     return (
@@ -58,10 +100,38 @@ export default function OfficerPerformancePage() {
                 <CardHeader>
                     <CardTitle>Individual Officer Performance</CardTitle>
                     <CardDescription>
-                        Detailed performance metrics for each KYC officer.
+                        Detailed performance metrics for each KYC officer. Use the filters to refine the list.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <div className="flex flex-col md:flex-row items-end gap-4 mb-6 pb-6 border-b">
+                        <div className="grid gap-2 w-full md:max-w-xs">
+                            <Label htmlFor="search-filter">Search by Officer Name</Label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="search-filter"
+                                    type="search"
+                                    placeholder="e.g., Charlie Davis"
+                                    className="pl-8"
+                                    value={filters.name}
+                                    onChange={e => handleFilterChange('name', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid gap-2 w-full md:max-w-xs">
+                            <Label htmlFor="team-filter">Filter by Team</Label>
+                            <Select value={filters.team} onValueChange={v => handleFilterChange('team', v)}>
+                                <SelectTrigger id="team-filter"><SelectValue placeholder="Select Team" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Teams</SelectItem>
+                                    {uniqueTeams.map(team => <SelectItem key={team} value={team}>{team}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
+                    </div>
+
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -74,39 +144,47 @@ export default function OfficerPerformancePage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {officerPerformanceData.map((officer, index) => (
-                                <TableRow key={officer.id}>
-                                    <TableCell className="font-medium">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-9 w-9">
-                                                <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={officer.name} data-ai-hint="person portrait" />
-                                                <AvatarFallback>{officer.name.slice(0, 2)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="grid gap-1">
-                                                <p className="text-sm font-medium leading-none">{officer.name}</p>
-                                                <p className="text-xs text-muted-foreground">{officer.id}</p>
+                             {filteredData.length > 0 ? (
+                                filteredData.map((officer, index) => (
+                                    <TableRow key={officer.id}>
+                                        <TableCell className="font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={officer.name} data-ai-hint="person portrait" />
+                                                    <AvatarFallback>{officer.name.slice(0, 2)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="grid gap-1">
+                                                    <p className="text-sm font-medium leading-none">{officer.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{officer.id}</p>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{officer.team}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">{officer.casesReviewed}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Progress value={officer.approvalRate} aria-label={`${officer.approvalRate}% approval rate`} />
+                                                <span className="text-xs text-muted-foreground">{officer.approvalRate}%</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Progress value={officer.amendmentRate} aria-label={`${officer.amendmentRate}% amendment rate`} />
+                                                <span className="text-xs text-muted-foreground">{officer.amendmentRate}%</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">{officer.avgProcessingTime.toFixed(1)}</TableCell>
+                                    </TableRow>
+                                ))
+                             ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center">
+                                        No officers found for the selected filters.
                                     </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{officer.team}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">{officer.casesReviewed}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Progress value={officer.approvalRate} aria-label={`${officer.approvalRate}% approval rate`} />
-                                            <span className="text-xs text-muted-foreground">{officer.approvalRate}%</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Progress value={officer.amendmentRate} aria-label={`${officer.amendmentRate}% amendment rate`} />
-                                            <span className="text-xs text-muted-foreground">{officer.amendmentRate}%</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">{officer.avgProcessingTime.toFixed(1)}</TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
