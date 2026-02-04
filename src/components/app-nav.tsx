@@ -81,7 +81,7 @@ export function AppNav({ isMobile = false }: { isMobile?: boolean }) {
     <Button
       key={item.href}
       asChild
-      variant={pathname === item.href ? "secondary" : "ghost"}
+      variant={pathname === item.href ? "default" : "ghost"}
       className="w-full justify-start"
     >
       <Link href={item.href}>
@@ -103,7 +103,7 @@ export function AppNav({ isMobile = false }: { isMobile?: boolean }) {
                  <Button
                     key={item.href}
                     asChild
-                    variant={pathname.startsWith(item.href) ? "secondary" : "ghost"}
+                    variant={pathname.startsWith(item.href) ? "default" : "ghost"}
                     className="w-full justify-start"
                     >
                     <Link href={item.href}>
