@@ -4,31 +4,31 @@
 
 @layer base {
   :root {
-    --background: 210 29% 97%;
-    --foreground: 226 25% 15%;
+    --background: 38 67% 98%; /* #FCFAF7 */
+    --foreground: 0 0% 20%; /* #333333 */
     --card: 0 0% 100%;
-    --card-foreground: 226 25% 15%;
+    --card-foreground: 0 0% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 226 25% 15%;
-    --primary: 226 43% 26%;
+    --popover-foreground: 0 0% 20%;
+    --primary: 45 57% 46%; /* #B89334 */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 90%;
-    --secondary-foreground: 226 25% 15%;
+    --secondary-foreground: 0 0% 20%;
     --muted: 210 20% 90%;
     --muted-foreground: 226 10% 45%;
-    --accent: 201 47% 45%;
+    --accent: 340 75% 53%; /* #E1306C */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 201 47% 45%;
+    --border: 38 20% 90%;
+    --input: 38 20% 90%;
+    --ring: 45 57% 46%;
     --radius: 0.5rem;
-    --chart-1: 226 43% 26%;
-    --chart-2: 201 47% 45%;
-    --chart-3: 210 20% 60%;
-    --chart-4: 226 30% 50%;
-    --chart-5: 201 30% 70%;
+    --chart-1: 45 57% 46%;
+    --chart-2: 340 75% 53%;
+    --chart-3: 27 36% 50%;
+    --chart-4: 45 57% 70%;
+    --chart-5: 340 75% 70%;
   }
 
   .dark {
@@ -56,6 +56,27 @@
     --chart-3: 210 20% 70%;
     --chart-4: 226 30% 50%;
     --chart-5: 201 30% 70%;
+  }
+
+  /* Custom dark theme for sidebar and header */
+  .dark-theme-sidebar {
+    --background: 27 36% 18%; /* #3E2B1E */
+    --foreground: 38 30% 85%; /* Light tan text */
+    --card: 27 36% 18%;
+    --card-foreground: 38 30% 85%;
+    --popover: 27 36% 15%;
+    --popover-foreground: 38 30% 85%;
+    --primary: 45 57% 46%; /* #B89334 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 57% 46%; /* Gold for active nav item */
+    --secondary-foreground: 27 36% 10%;
+    --muted: 27 30% 25%; /* for hover on nav items */
+    --muted-foreground: 38 30% 85%;
+    --accent: 27 30% 25%; /* for hover on ghost buttons */
+    --accent-foreground: 38 30% 85%;
+    --border: 27 30% 25%;
+    --input: 27 30% 30%;
+    --ring: 45 57% 46%;
   }
 }
 
