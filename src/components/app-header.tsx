@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Menu,
-  Search,
   CircleUser,
   LogOut,
   Settings
@@ -19,7 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
@@ -35,9 +33,6 @@ export default function AppHeader({ user }: { user: User | null }) {
     auth.signOut();
     router.replace('/login');
   };
-
-  // Only show search for specific roles.
-  const canShowSearch = user && (user.role === 'Admin' || user.role === 'Supervisor');
 
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
@@ -62,18 +57,7 @@ export default function AppHeader({ user }: { user: User | null }) {
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1">
-        {canShowSearch && (
-          <form>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search submissions..."
-                className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-              />
-            </div>
-          </form>
-        )}
+        
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
