@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 import { submissions as initialSubmissions, type Submission } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Calendar, User, Building, Check, Send } from "lucide-react";
+import { FileText, Calendar, User, Building, Check, Send, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { AmendmentDialog } from "@/components/amendment-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +50,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const initialSubmission = initialSubmissions.find(s => s.id === params.id);
     
     const [submission, setSubmission] = useState<Submission | undefined>(initialSubmission);
+    const router = useRouter();
     
     if (!submission) {
         notFound();
@@ -66,55 +68,60 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     ];
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-            <div className="lg:col-span-2">
-                <Card className="overflow-hidden">
-                    <CardHeader>
-                        <CardTitle>Document Viewer</CardTitle>
-                        <CardDescription>Review the submitted document below.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="relative aspect-[8.5/11] w-full bg-muted rounded-md overflow-hidden border">
-                             <Image 
-                                src={submission.documentUrl} 
-                                alt={`Document for ${submission.customerName}`}
-                                fill
-                                style={{ objectFit: 'contain' }}
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                data-ai-hint="document paper"
-                            />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="lg:col-span-1 flex flex-col gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Submission Details</CardTitle>
-                        <div className="flex items-center gap-2 pt-2">
-                            <span className="text-sm text-muted-foreground">Status:</span>
-                            <Badge variant={
-                                submission.status === 'Approved' ? 'default'
-                                : submission.status === 'Pending' ? 'secondary'
-                                : submission.status === 'Escalated' ? 'destructive'
-                                : 'outline'
-                            }>{submission.status}</Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {details.map((item, index) => (
-                            <div key={index} className="flex items-center gap-3 text-sm">
-                                <item.icon className="h-5 w-5 text-muted-foreground" />
-                                <div>
-                                    <p className="font-medium">{item.value}</p>
-                                    <p className="text-xs text-muted-foreground">{item.label}</p>
-                                </div>
+        <div>
+            <Button variant="outline" onClick={() => router.back()} className="mb-6">
+                <ArrowLeft /> Back
+            </Button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                <div className="lg:col-span-2">
+                    <Card className="overflow-hidden">
+                        <CardHeader>
+                            <CardTitle>Document Viewer</CardTitle>
+                            <CardDescription>Review the submitted document below.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative aspect-[8.5/11] w-full bg-muted rounded-md overflow-hidden border">
+                                <Image 
+                                    src={submission.documentUrl} 
+                                    alt={`Document for ${submission.customerName}`}
+                                    fill
+                                    style={{ objectFit: 'contain' }}
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    data-ai-hint="document paper"
+                                />
                             </div>
-                        ))}
-                    </CardContent>
-                </Card>
-                
-                <ActionButtons submission={submission} onStatusChange={handleStatusChange} />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-1 flex flex-col gap-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Submission Details</CardTitle>
+                            <div className="flex items-center gap-2 pt-2">
+                                <span className="text-sm text-muted-foreground">Status:</span>
+                                <Badge variant={
+                                    submission.status === 'Approved' ? 'default'
+                                    : submission.status === 'Pending' ? 'secondary'
+                                    : submission.status === 'Escalated' ? 'destructive'
+                                    : 'outline'
+                                }>{submission.status}</Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {details.map((item, index) => (
+                                <div key={index} className="flex items-center gap-3 text-sm">
+                                    <item.icon className="h-5 w-5 text-muted-foreground" />
+                                    <div>
+                                        <p className="font-medium">{item.value}</p>
+                                        <p className="text-xs text-muted-foreground">{item.label}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                    
+                    <ActionButtons submission={submission} onStatusChange={handleStatusChange} />
+                </div>
             </div>
         </div>
     );
