@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppSidebar from '@/components/app-sidebar';
 import AppHeader from '@/components/app-header';
-import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,26 +23,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       router.replace('/login');
     }
   }, [authUser, isUserLoading, router]);
-
-  // Create a user document for anonymous users on first load if it doesn't exist
-  useEffect(() => {
-      if (authUser && !userData && !isProfileLoading && userDocRef) {
-          // This is a new anonymous user. Let's create a profile for them for the demo.
-          // We'll give them the 'Admin' role so they can access all features.
-          const newUserData: UserData = {
-              id: authUser.uid,
-              username: `demo_${authUser.uid.slice(0, 6)}`,
-              firstName: 'Demo',
-              lastName: 'Admin',
-              email: authUser.email || 'demo@example.com',
-              role: 'Admin',
-              branch: 'Corporate',
-              district: 'Corporate',
-              status: 'Active',
-          };
-          setDocumentNonBlocking(userDocRef, newUserData, { merge: false });
-      }
-  }, [authUser, userData, isProfileLoading, userDocRef]);
 
   // Show loading skeleton until we have both the auth user and their corresponding Firestore profile
   const isLoading = isUserLoading || (authUser && !userData);
