@@ -1,21 +1,29 @@
 "use client";
 
-import { submissions } from "@/lib/data";
+import { useState } from "react";
+import { submissions as initialSubmissions, type Submission } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { FileText, Calendar, User, Building, Check, Send } from "lucide-react";
 import { format } from "date-fns";
 import { AmendmentDialog } from "@/components/amendment-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-function ActionButtons({ submissionId }: { submissionId: string }) {
-    // Note: In a real app, these buttons would trigger server actions
-    // to update the submission status in a database.
+function ActionButtons({ submission, onStatusChange }: { submission: Submission, onStatusChange: (newStatus: Submission['status']) => void }) {
     const { toast } = useToast();
+
+    const handleApprove = () => {
+        onStatusChange('Approved');
+        toast({ title: "Approved", description: `Submission ${submission.id} has been approved.`});
+    };
+    
+    const handleEscalate = () => {
+        onStatusChange('Escalated');
+        toast({ title: "Escalated", description: `Submission ${submission.id} has been escalated.`, variant: 'destructive'});
+    }
 
     return (
         <Card>
@@ -24,11 +32,11 @@ function ActionButtons({ submissionId }: { submissionId: string }) {
                 <CardDescription>Review complete? Take the next step.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col space-y-2">
-                <Button onClick={() => toast({ title: "Approved", description: `Submission ${submissionId} has been approved.`})}>
+                <Button onClick={handleApprove}>
                     <Check /> Approve Submission
                 </Button>
-                <AmendmentDialog />
-                <Button variant="destructive" onClick={() => toast({ title: "Escalated", description: `Submission ${submissionId} has been escalated.`, variant: 'destructive'})}>
+                <AmendmentDialog submissionId={submission.id} onStatusChange={onStatusChange} />
+                <Button variant="destructive" onClick={handleEscalate}>
                     <Send /> Escalate to Supervisor
                 </Button>
             </CardContent>
@@ -38,11 +46,17 @@ function ActionButtons({ submissionId }: { submissionId: string }) {
 
 
 export default function SubmissionReviewPage({ params }: { params: { id: string } }) {
-    const submission = submissions.find(s => s.id === params.id);
-
+    const initialSubmission = initialSubmissions.find(s => s.id === params.id);
+    
+    const [submission, setSubmission] = useState<Submission | undefined>(initialSubmission);
+    
     if (!submission) {
         notFound();
     }
+    
+    const handleStatusChange = (newStatus: Submission['status']) => {
+        setSubmission(prev => prev ? { ...prev, status: newStatus } : undefined);
+    };
 
     const details = [
         { label: "Customer Name", value: submission.customerName, icon: User },
@@ -100,7 +114,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                     </CardContent>
                 </Card>
                 
-                <ActionButtons submissionId={submission.id} />
+                <ActionButtons submission={submission} onStatusChange={handleStatusChange} />
             </div>
         </div>
     );
