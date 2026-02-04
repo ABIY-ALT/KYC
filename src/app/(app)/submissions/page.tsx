@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { submissions, type Submission } from "@/lib/data";
+import { useSubmissions } from '@/context/submissions-context';
+import { type Submission } from "@/lib/data";
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function MySubmissionsPage() {
   const router = useRouter();
+  const { submissions } = useSubmissions();
   
   // In a real application, you would fetch submissions for the logged-in user.
   // For now, we'll display all submissions.

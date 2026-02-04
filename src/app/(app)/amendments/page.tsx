@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { submissions } from "@/lib/data";
+import { useSubmissions } from '@/context/submissions-context';
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -31,6 +31,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export default function AmendmentsPage() {
   const router = useRouter();
+  const { submissions } = useSubmissions();
   const amendmentSubmissions = submissions.filter(s => s.status === 'Amendment');
 
   return (

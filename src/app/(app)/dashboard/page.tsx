@@ -19,10 +19,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { kpiData, submissionTrendData, submissions } from "@/lib/data";
+import { kpiData, submissionTrendData } from "@/lib/data";
+import { useSubmissions } from "@/context/submissions-context";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export default function DashboardPage() {
+    const { submissions } = useSubmissions();
     const userAvatars = PlaceHolderImages.filter(img => img.id.includes('user-avatar'));
 
     return (

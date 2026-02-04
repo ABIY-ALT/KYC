@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Card,
@@ -19,7 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { submissions as initialSubmissions, type Submission } from "@/lib/data";
+import { useSubmissions } from '@/context/submissions-context';
+import { type Submission } from "@/lib/data";
 import { MoreHorizontal, CheckCircle } from "lucide-react";
 import {
   DropdownMenu,
@@ -34,18 +34,13 @@ import { useToast } from "@/hooks/use-toast";
 export default function ApprovalsPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [allSubmissions, setAllSubmissions] = useState<Submission[]>(initialSubmissions);
+  const { submissions, updateSubmissionStatus } = useSubmissions();
 
   // For this page, we'll consider 'Pending' submissions as those awaiting final approval.
-  const submissionsForApproval = allSubmissions.filter(s => s.status === 'Pending');
+  const submissionsForApproval = submissions.filter(s => s.status === 'Pending');
 
   const handleApprove = (submissionId: string) => {
-    // In a real app, this would trigger a server action to update the status.
-    setAllSubmissions(currentSubmissions =>
-      currentSubmissions.map(s => 
-        s.id === submissionId ? { ...s, status: 'Approved' } : s
-      )
-    );
+    updateSubmissionStatus(submissionId, 'Approved');
     
     toast({
         title: "Submission Approved",

@@ -29,12 +29,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import {
-  submissions,
   branchPerformanceData,
   officerPerformanceData,
   districtPerformanceData,
   type Submission,
 } from '@/lib/data';
+import { useSubmissions } from '@/context/submissions-context';
 import { Calendar as CalendarIcon, Download, FileText, SlidersHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { type DateRange } from "react-day-picker";
@@ -49,6 +49,7 @@ const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.nam
 
 export default function ReportsPage() {
   const { toast } = useToast();
+  const { submissions } = useSubmissions();
   const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [filters, setFilters] = useState({
     branch: 'all',

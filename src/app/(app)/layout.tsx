@@ -9,6 +9,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import type { User as UserData } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SubmissionsProvider } from '@/context/submissions-context';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user: authUser, isUserLoading } = useUser();
@@ -61,14 +62,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-      <AppSidebar user={userData} />
-      <div className="flex flex-col">
-        <AppHeader user={userData} />
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-          {children}
-        </main>
+    <SubmissionsProvider>
+      <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
+        <AppSidebar user={userData} />
+        <div className="flex flex-col">
+          <AppHeader user={userData} />
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SubmissionsProvider>
   );
 }

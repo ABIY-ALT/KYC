@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from 'next/navigation';
-import { submissions as initialSubmissions, type Submission } from "@/lib/data";
+import { useSubmissions } from '@/context/submissions-context';
+import { type Submission } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,17 +47,17 @@ function ActionButtons({ submission, onStatusChange }: { submission: Submission,
 
 
 export default function SubmissionReviewPage({ params }: { params: { id: string } }) {
-    const initialSubmission = initialSubmissions.find(s => s.id === params.id);
-    
-    const [submission, setSubmission] = useState<Submission | undefined>(initialSubmission);
+    const { submissions, updateSubmissionStatus } = useSubmissions();
     const router = useRouter();
+    
+    const submission = submissions.find(s => s.id === params.id);
     
     if (!submission) {
         notFound();
     }
     
     const handleStatusChange = (newStatus: Submission['status']) => {
-        setSubmission(prev => prev ? { ...prev, status: newStatus } : undefined);
+        updateSubmissionStatus(submission.id, newStatus);
     };
 
     const details = [
