@@ -12,12 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Logo from '@/components/logo';
-import { useAuth, useUser, setDocumentNonBlocking, useFirestore } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
-import { doc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import type { User } from '@/lib/data';
 
 
@@ -56,10 +56,13 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       // The onAuthStateChanged listener in the provider will handle the redirect.
     } catch (error: any) {
-        // Special handling for the demo admin user
-        if (values.email === ADMIN_EMAIL && error.code === 'auth/user-not-found') {
+        // Special handling for the demo admin user.
+        // `auth/invalid-credential` can mean user not found OR wrong password.
+        // We attempt to create the user if it seems they don't exist.
+        if (values.email === ADMIN_EMAIL && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+                // Attempt to create the user with the correct admin credentials.
+                const userCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
                 const authUser = userCredential.user;
                 const adminUser: User = {
                     id: authUser.uid,
@@ -73,23 +76,35 @@ export default function LoginPage() {
                     status: 'Active',
                 };
                 const userRef = doc(firestore, 'users', authUser.uid);
-                setDocumentNonBlocking(userRef, adminUser, { merge: false });
+                // Use await here to ensure the user doc is created before the page might redirect.
+                await setDoc(userRef, adminUser);
+                
                 toast({
                     title: "Admin Account Created",
                     description: "Welcome, Admin! Your account has been set up.",
                 });
-                // Let onAuthStateChanged handle the redirect
+                // The onAuthStateChanged listener will now handle the redirect.
                 return;
             } catch (creationError: any) {
-                 toast({
-                    variant: "destructive",
-                    title: "Admin Setup Failed",
-                    description: creationError.message || "Could not create the admin demo user.",
-                });
+                 // If creation fails, it's likely because the user already exists, which means the original password was wrong.
+                 if (creationError.code === 'auth/email-already-in-use') {
+                     toast({
+                        variant: "destructive",
+                        title: "Login Failed",
+                        description: "Invalid password for the admin account. Please try again.",
+                    });
+                 } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Admin Setup Failed",
+                        description: creationError.message || "Could not create the admin demo user.",
+                    });
+                 }
                 return;
             }
         }
       
+      // For non-admin users or other errors
       console.error("Login failed:", error);
       toast({
         variant: "destructive",
