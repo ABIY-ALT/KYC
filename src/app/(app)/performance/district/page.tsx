@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     Card,
     CardContent,
@@ -19,6 +20,10 @@ import { Progress } from "@/components/ui/progress";
 import { districtPerformanceData } from "@/lib/data";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 export default function DistrictPerformancePage() {
     const totalSubmissions = districtPerformanceData.reduce((acc, district) => acc + district.totalSubmissions, 0);
@@ -39,6 +44,16 @@ export default function DistrictPerformancePage() {
             color: 'hsl(var(--primary))',
         },
     };
+
+    const [filteredData, setFilteredData] = useState(districtPerformanceData);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        const data = districtPerformanceData.filter(district =>
+            district.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredData(data);
+    }, [searchTerm]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
@@ -62,10 +77,27 @@ export default function DistrictPerformancePage() {
                     <CardHeader>
                         <CardTitle>District Breakdown</CardTitle>
                         <CardDescription>
-                            Aggregated performance metrics for each district.
+                            Aggregated performance metrics for each district. Use the filter to refine the list.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
+                         <div className="flex items-end gap-4 mb-6 pb-6 border-b">
+                            <div className="grid gap-2 w-full md:max-w-xs">
+                                <Label htmlFor="search-filter">Search by District Name</Label>
+                                <div className="relative">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="search-filter"
+                                        type="search"
+                                        placeholder="e.g., Metro District"
+                                        className="pl-8"
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <Button variant="outline" onClick={() => setSearchTerm('')}>Reset</Button>
+                        </div>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -77,20 +109,28 @@ export default function DistrictPerformancePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {districtPerformanceData.map((district) => (
-                                    <TableRow key={district.id}>
-                                        <TableCell className="font-medium">{district.name}</TableCell>
-                                        <TableCell className="text-right">{district.totalSubmissions.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right">{district.approvalRate.toFixed(1)}%</TableCell>
-                                        <TableCell className="text-right">{district.avgTurnaroundTime.toFixed(1)}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Progress value={district.slaCompliance} aria-label={`${district.slaCompliance}% SLA Compliance`} />
-                                                <span className="text-xs text-muted-foreground">{district.slaCompliance}%</span>
-                                            </div>
+                                {filteredData.length > 0 ? (
+                                    filteredData.map((district) => (
+                                        <TableRow key={district.id}>
+                                            <TableCell className="font-medium">{district.name}</TableCell>
+                                            <TableCell className="text-right">{district.totalSubmissions.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">{district.approvalRate.toFixed(1)}%</TableCell>
+                                            <TableCell className="text-right">{district.avgTurnaroundTime.toFixed(1)}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Progress value={district.slaCompliance} aria-label={`${district.slaCompliance}% SLA Compliance`} />
+                                                    <span className="text-xs text-muted-foreground">{district.slaCompliance}%</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                     <TableRow>
+                                        <TableCell colSpan={5} className="h-24 text-center">
+                                            No districts found for "{searchTerm}".
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -105,7 +145,7 @@ export default function DistrictPerformancePage() {
                          <ChartContainer config={chartConfig} className="h-[250px] w-full">
                             <BarChart
                                 accessibilityLayer
-                                data={districtPerformanceData}
+                                data={filteredData}
                                 layout="vertical"
                                 margin={{ left: 10 }}
                             >
@@ -118,6 +158,7 @@ export default function DistrictPerformancePage() {
                                     stroke="hsl(var(--muted-foreground))"
                                     className="text-xs"
                                     interval={0}
+                                    width={80}
                                 />
                                 <XAxis dataKey="totalSubmissions" type="number" hide />
                                 <CartesianGrid horizontal={false} />
