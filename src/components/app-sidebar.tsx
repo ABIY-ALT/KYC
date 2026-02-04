@@ -20,7 +20,7 @@ export default function AppSidebar({ user }: { user: User | null }) {
   };
 
   return (
-    <div className="hidden border-r bg-card dark-theme-sidebar lg:block">
+    <div className="hidden border-r bg-card lg:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-16 items-center border-b px-6">
           <Logo />

@@ -24,6 +24,7 @@ import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
 import { useAuth } from '@/firebase';
 import type { User } from '@/lib/data';
+import { ThemeToggle } from './theme-toggle';
 
 export default function AppHeader({ user }: { user: User | null }) {
   const auth = useAuth();
@@ -35,7 +36,7 @@ export default function AppHeader({ user }: { user: User | null }) {
   };
 
   return (
-    <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30 dark-theme-sidebar">
+    <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
       <Sheet>
         <SheetTrigger asChild>
           <Button
@@ -47,7 +48,7 @@ export default function AppHeader({ user }: { user: User | null }) {
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 w-72 dark-theme-sidebar">
+        <SheetContent side="left" className="flex flex-col p-0 w-72 bg-card">
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <div className="flex h-16 items-center border-b px-6">
                 <Logo />
@@ -60,6 +61,7 @@ export default function AppHeader({ user }: { user: User | null }) {
       <div className="w-full flex-1">
         
       </div>
+      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
