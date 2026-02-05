@@ -75,15 +75,10 @@ export default function AmendSubmissionPage() {
     useEffect(() => {
         if (params.id) {
             const sub = submissions.find(s => s.id === params.id);
-            if (sub && sub.status === 'Action Required') {
-                setSubmission(sub);
-            } else if (sub) {
-                // If submission exists but doesn't require action, redirect
-                router.replace('/submissions');
-            }
+            setSubmission(sub);
         }
         setIsLoading(false);
-    }, [params.id, submissions, router]);
+    }, [params.id, submissions]);
 
     const handleFileUploaded = (request: AmendmentRequest, uploadedFile: File) => {
         if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
@@ -139,33 +134,38 @@ export default function AmendSubmissionPage() {
         // Disable button while processing
         form.setValue("submitting", true);
     
-        const amendedDocs = data.amendedFiles.map((f, i) => ({
-          id: `doc-${Date.now()}-${i}`,
-          fileName: f.file.name,
-          documentType: f.documentType,
-          url: f.file.url,
-          size: f.file.size,
-          format: f.file.type,
-          uploadedAt: new Date().toISOString(),
-          version: (submission.documents.find(d => d.id === f.originalDocumentId)?.version || 0) + 1,
-        }));
+        const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
+            const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
+            return {
+                id: `doc-${Date.now()}-${index}`,
+                fileName: f.file.name,
+                documentType: f.documentType,
+                url: f.file.url,
+                size: f.file.size,
+                format: f.file.type,
+                uploadedAt: new Date().toISOString(),
+                version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
+            };
+        });
     
-        await submitAmendment(submission.id, amendedDocs, data.responseComment, 'Fully Amended');
+        await submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
     
         toast({
           title: "Amendment Response Sent",
           description: "Your response has been sent to the KYC officer for review.",
         });
     
-        // Slight delay to ensure React flushes updates
+        // Slight delay to ensure React flushes updates before navigating
         setTimeout(() => router.push('/submissions'), 100);
       } catch (err) {
+        console.error(err);
         toast({
             variant: "destructive",
             title: "Submission Failed",
             description: "Something went wrong, please try again.",
         });
       } finally {
+        // This runs even if there's an error
         form.setValue("submitting", false);
       }
     };
@@ -174,7 +174,7 @@ export default function AmendSubmissionPage() {
         return <Skeleton className="h-screen w-full" />;
     }
 
-    if (!submission || !submission.pendingAmendments || submission.pendingAmendments.length === 0) {
+    if (!submission || !submission.pendingAmendments || submission.pendingAmendments.length === 0 || submission.status !== 'Action Required') {
         notFound();
     }
     
