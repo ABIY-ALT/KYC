@@ -145,10 +145,10 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const handleApprove = () => handleStatusChange('Approved');
     const handleEscalate = () => handleStatusChange('Escalated');
 
-    // Determine user role - default to Branch Manager if not loaded
-    const userRole = userData?.role || 'Branch Manager';
-    const isActionableUser = userRole === 'Officer' || userRole === 'Supervisor' || userRole === 'Admin';
-    const isBranchUser = userRole === 'Branch Manager';
+    // Determine user role - default to officer if not loaded
+    const userRole = userData?.role || 'Officer';
+    const isReviewerUser = userRole === 'Supervisor' || userRole === 'Admin';
+    const isBranchUser = userRole === 'Branch Manager' || userRole === 'Officer';
 
     // Combine original and amended documents for review
     const allDocuments = [
@@ -328,3 +328,5 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         </div>
     );
 }
+
+    
