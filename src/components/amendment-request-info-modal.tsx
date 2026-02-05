@@ -37,7 +37,8 @@ export function AmendmentRequestInfoModal({ submission, onClose }: AmendmentRequ
         <DialogHeader>
           <DialogTitle>Amendment Request Details</DialogTitle>
           <DialogDescription>
-            A KYC Officer has requested changes for submission ID: {submission.id}.
+            A KYC Officer has requested changes for submission ID: {submission.id}. 
+            Click "Proceed to Upload" to go to the amendment page.
           </DialogDescription>
         </DialogHeader>
         <Alert variant="destructive" className="my-4">
@@ -52,7 +53,7 @@ export function AmendmentRequestInfoModal({ submission, onClose }: AmendmentRequ
                 Close
             </Button>
             <Button type="button" onClick={handleProceed}>
-                Proceed to Amend
+                Proceed to Upload
             </Button>
         </DialogFooter>
       </DialogContent>
