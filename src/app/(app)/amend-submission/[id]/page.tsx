@@ -31,6 +31,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { InlineUploader, fileSchema as amendFileSchema, renderFilePreviewIcon } from "@/components/amendment-uploader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const RESPONSE_TYPES = [
     'Fully Amended',
@@ -169,44 +170,55 @@ export default function AmendSubmissionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">Status</TableHead>
-                                    <TableHead>Document Name</TableHead>
-                                    <TableHead className="text-center">Existing File</TableHead>
-                                    <TableHead className="w-[300px]">Action: Upload New Version</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {submission.documents.map(doc => {
-                                    const isAmended = fields.some(f => f.originalDocId === doc.id);
-                                    const amendedFile = fields.find(f => f.originalDocId === doc.id)?.file;
+                        <TooltipProvider>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12">Status</TableHead>
+                                        <TableHead>Document Name</TableHead>
+                                        <TableHead className="text-center">Existing File</TableHead>
+                                        <TableHead className="w-[300px]">Action: Upload New Version</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {submission.documents.map(doc => {
+                                        const isAmended = fields.some(f => f.originalDocId === doc.id);
+                                        const amendedFile = fields.find(f => f.originalDocId === doc.id)?.file;
 
-                                    return (
-                                        <TableRow key={doc.id} data-amended={isAmended} className="data-[amended=true]:bg-green-50 dark:data-[amended=true]:bg-green-950/50 transition-colors">
-                                            <TableCell className="text-center">
-                                                {isAmended ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
-                                            </TableCell>
-                                            <TableCell className="font-medium">{doc.documentType}</TableCell>
-                                            <TableCell className="text-center">
-                                                <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                                    <Button variant="ghost" size="sm"><Eye className="mr-2"/> View</Button>
-                                                </a>
-                                            </TableCell>
-                                            <TableCell>
-                                                <InlineUploader 
-                                                    originalDoc={doc} 
-                                                    onFileUploaded={(file) => handleFileUploaded(doc.id, file)}
-                                                    uploadedFile={amendedFile}
-                                                    onFileRemoved={() => remove(fields.findIndex(f => f.originalDocId === doc.id))}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
+                                        return (
+                                            <TableRow key={doc.id} data-amended={isAmended} className="data-[amended=true]:bg-green-50 dark:data-[amended=true]:bg-green-950/50 transition-colors">
+                                                <TableCell className="text-center">
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            {isAmended ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>{isAmended ? "New version uploaded" : "Action required"}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{doc.documentType}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button asChild variant="ghost" size="sm">
+                                                        <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                            <Eye className="mr-2"/> View
+                                                        </a>
+                                                    </Button>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <InlineUploader 
+                                                        originalDoc={doc} 
+                                                        onFileUploaded={(file) => handleFileUploaded(doc.id, file)}
+                                                        uploadedFile={amendedFile}
+                                                        onFileRemoved={() => remove(fields.findIndex(f => f.originalDocId === doc.id))}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </TooltipProvider>
                     </CardContent>
                 </Card>
 
@@ -281,3 +293,5 @@ export default function AmendSubmissionPage() {
         </div>
     );
 }
+
+    
