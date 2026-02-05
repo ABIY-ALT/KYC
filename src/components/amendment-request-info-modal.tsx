@@ -28,7 +28,7 @@ export function AmendmentRequestInfoModal({ submission, onClose }: AmendmentRequ
 
   const handleProceed = () => {
     onClose();
-    router.push(`/review-queue/${submission.id}`);
+    router.push(`/amend-submission/${submission.id}`);
   };
 
   return (
