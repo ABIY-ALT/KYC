@@ -69,7 +69,7 @@ export function InlineUploader({ originalDoc, onFileUploaded, uploadedFile, onFi
             )}
         >
             <input {...getInputProps()} />
-            <Button type="button" variant="outline" size="sm" className="pointer-events-none">
+            <Button type="button" variant="outline" size="sm">
                 <FileUp className="mr-2" />
                 {isDragActive ? 'Drop to upload' : 'Upload New Version'}
             </Button>
