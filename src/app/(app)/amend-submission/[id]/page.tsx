@@ -55,7 +55,7 @@ export default function AmendSubmissionPage() {
     
     const [submission, setSubmission] = useState<Submission | undefined>();
     const [isLoading, setIsLoading] = useState(true);
-    const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'submitted'>('idle');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(amendmentResponseSchema),
@@ -67,6 +67,8 @@ export default function AmendSubmissionPage() {
         name: "amendedFiles",
         keyName: 'formId',
     });
+    
+    const amendedFiles = form.watch('amendedFiles');
 
     useEffect(() => {
         if (params.id) {
@@ -75,16 +77,6 @@ export default function AmendSubmissionPage() {
         }
         setIsLoading(false);
     }, [params.id, submissions]);
-
-    useEffect(() => {
-        if (submissionStatus === 'submitted') {
-            const timer = setTimeout(() => {
-                router.push('/submissions');
-            }, 1500);
-
-            return () => clearTimeout(timer);
-        }
-    }, [submissionStatus, router]);
 
     const handleFileUploaded = useCallback((request: AmendmentRequest, uploadedFile: File) => {
         if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
@@ -135,10 +127,10 @@ export default function AmendSubmissionPage() {
     }, [fields, remove]);
     
     const handleAmendmentSubmit = async (data: FormValues) => {
-      if (!submission || submissionStatus === 'submitting') return;
+      if (!submission || isSubmitting) return;
     
       try {
-        setSubmissionStatus('submitting');
+        setIsSubmitting(true);
     
         const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
             const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
@@ -161,7 +153,9 @@ export default function AmendSubmissionPage() {
           description: "Your response has been sent for re-review. Redirecting...",
         });
 
-        setSubmissionStatus('submitted');
+        setTimeout(() => {
+            router.push('/submissions');
+        }, 1500);
     
       } catch (err) {
         console.error(err);
@@ -170,7 +164,7 @@ export default function AmendSubmissionPage() {
             title: "Submission Failed",
             description: "Something went wrong, please try again.",
         });
-        setSubmissionStatus('idle');
+        setIsSubmitting(false);
       }
     };
     
@@ -215,7 +209,7 @@ export default function AmendSubmissionPage() {
                                 <InlineUploader 
                                     mode={request.type === 'REPLACE_EXISTING' ? 'REPLACE' : 'ADD'}
                                     documentType={request.targetDocumentType}
-                                    uploadedFile={form.watch('amendedFiles').find(f => f.amendmentRequestId === request.id)?.file}
+                                    uploadedFile={amendedFiles.find(f => f.amendmentRequestId === request.id)?.file}
                                     onFileUploaded={(file) => handleFileUploaded(request, file)}
                                     onFileRemoved={() => handleFileRemoved(request.id)}
                                 />
@@ -250,9 +244,9 @@ export default function AmendSubmissionPage() {
                 </Card>
                 
                 <CardFooter className="justify-end sticky bottom-0 bg-background/95 py-4 border-t z-10">
-                     <Button type="submit" disabled={submissionStatus === 'submitting' || !form.formState.isValid}>
-                        {submissionStatus === 'submitting' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {submissionStatus === 'submitting' ? "Submitting..." : "Submit Amendment Response"}
+                     <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? "Submitting..." : "Submit Amendment Response"}
                     </Button>
                 </CardFooter>
             </form>
