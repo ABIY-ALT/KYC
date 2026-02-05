@@ -38,7 +38,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { type Submission } from '@/lib/data';
+import { type Submission, districtPerformanceData } from '@/lib/data';
+
+// Mapping to enable filtering by district
+const branchToDistrictMap: { [key: string]: string } = {
+    'Downtown': 'Metro District',
+    'Uptown': 'Metro District',
+    'Eastside': 'Suburban District',
+    'Westend': 'Suburban District',
+    'North': 'Northern District',
+};
+const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
 
 export default function ReviewQueuePage() {
   const router = useRouter();
@@ -47,6 +57,7 @@ export default function ReviewQueuePage() {
   const [filters, setFilters] = useState({
     status: 'all',
     branch: 'all',
+    district: 'all',
     searchTerm: '',
   });
   
@@ -64,6 +75,10 @@ export default function ReviewQueuePage() {
     
     if (filters.branch !== 'all') {
         data = data.filter(s => s.branch === filters.branch);
+    }
+    
+    if (filters.district !== 'all') {
+        data = data.filter(s => branchToDistrictMap[s.branch] === filters.district);
     }
     
     if (filters.searchTerm) {
@@ -123,6 +138,16 @@ export default function ReviewQueuePage() {
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
                 {uniqueBranches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="district-filter">Filter by District</Label>
+            <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)}>
+              <SelectTrigger id="district-filter"><SelectValue placeholder="Select District" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Districts</SelectItem>
+                {uniqueDistricts.map(district => <SelectItem key={district} value={district}>{district}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
