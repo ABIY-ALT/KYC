@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useRouter, useParams, notFound } from 'next/navigation';
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useSubmissions } from '@/context/submissions-context';
@@ -68,7 +68,7 @@ export default function AmendSubmissionPage() {
         keyName: 'formId',
     });
     
-    const amendedFiles = form.watch('amendedFiles');
+    const amendedFiles = useWatch({ control: form.control, name: 'amendedFiles' });
 
     useEffect(() => {
         if (params.id) {

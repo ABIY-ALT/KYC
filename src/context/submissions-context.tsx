@@ -117,7 +117,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                         // Replace Data URLs with placeholder URLs to keep the main state light
                         const stableNewDocuments = newDocuments.map(doc => ({
                             ...doc,
-                            url: `https://picsum.photos/seed/doc${Date.now()}/800/1100`
+                            url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`
                         }));
                         
                         const newHistoryEntry: Amendment = {
