@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
@@ -224,7 +223,7 @@ export default function SubmissionReviewPage() {
 
     // Branch user responding to an amendment request
     if (isBranchUser && (submissionState.status === 'Amendment' || submissionState.status === 'Amended - Pending Review')) {
-        const requestDate = submissionState.amendmentRequestedAt ? format(new Date(submissionState.amendmentRequestedAt), 'dd/MM/YYYY') : 'a recent date';
+        const requestDate = submissionState.amendmentRequestedAt ? format(new Date(submissionState.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
         const placeholderTemplate = `All requested amendments have been completed. The corrected document(s) have been re-uploaded as per your comment dated ${requestDate}. Please proceed with review.`;
 
         // POST-SUBMISSION VIEW
@@ -492,5 +491,3 @@ export default function SubmissionReviewPage() {
         </div>
     );
 }
-
-    
