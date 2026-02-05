@@ -73,14 +73,14 @@ const getWorkflowSteps = (submission: Submission): WorkflowStepData[] => {
             steps[1].time = 'Currently in queue';
             steps[1].badge = 'Reviewing';
             break;
-        case 'Amendment':
+        case 'Action Required':
             steps[1].status = 'completed';
             steps[2].status = 'active';
             steps[2].time = 'Amendment Requested';
-            steps[2].details = `Reason: ${submission.amendmentReason || 'Not specified'}`;
+            steps[2].details = `${submission.pendingAmendments?.length || 0} change(s) requested.`;
             steps[2].badge = 'Action Required by Branch';
             break;
-        case 'Amended - Pending Review':
+        case 'Pending Review':
             steps[1].status = 'completed';
             steps[2].status = 'completed';
             steps[2].time = `Amended on ${format(new Date(submission.amendmentHistory?.slice(-1)[0]?.respondedAt || Date.now()), 'MMM dd, hh:mm a')}`;
@@ -122,7 +122,7 @@ export function WorkflowStatus({ submission, onEscalate, onApprove, onStatusChan
   const steps = getWorkflowSteps(submission);
 
   const canTakeAction = userRole === 'Officer' || userRole === 'Supervisor' || userRole === 'Admin';
-  const showActions = canTakeAction && (submission.status === 'Pending' || submission.status === 'Amended - Pending Review' || submission.status === 'Escalated');
+  const showActions = canTakeAction && (submission.status === 'Pending' || submission.status === 'Pending Review' || submission.status === 'Escalated');
 
   return (
     <div className="workflow-container hover-lift">

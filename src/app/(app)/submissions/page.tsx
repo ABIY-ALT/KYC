@@ -29,8 +29,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { type Submission, type User as UserData } from "@/lib/data";
-import { MoreHorizontal, RefreshCcw, FileText } from "lucide-react";
+import { type Submission, type User as UserData, type AmendmentRequest } from "@/lib/data";
+import { MoreHorizontal, RefreshCcw, FileText, FilePlus2 } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -39,7 +39,7 @@ import { AmendmentRequestInfoModal } from '@/components/amendment-request-info-m
 export default function MySubmissionsPage() {
   const router = useRouter();
   const { submissions } = useSubmissions();
-  const [modalSubmission, setModalSubmission] = useState<Submission | null>(null);
+  const [activeAmendment, setActiveAmendment] = useState<{ submission: Submission; request: AmendmentRequest } | null>(null);
   
   const { user: authUser } = useUser();
   const firestore = useFirestore();
@@ -61,13 +61,13 @@ export default function MySubmissionsPage() {
       case 'Approved':
         return 'default';
       case 'Pending':
-      case 'Amended - Pending Review':
+      case 'Pending Review':
         return 'secondary';
       case 'Escalated':
         return 'destructive';
       case 'Rejected':
         return 'destructive';
-      case 'Amendment':
+      case 'Action Required':
         return 'outline';
       default:
         return 'secondary';
@@ -75,8 +75,8 @@ export default function MySubmissionsPage() {
   };
   
   const getStatusText = (status: Submission['status']) => {
-    if (status === 'Amended - Pending Review') return 'Pending Review';
-    if (status === 'Amendment') return 'Action Required';
+    if (status === 'Pending Review') return 'Pending Review';
+    if (status === 'Action Required') return 'Action Required';
     return status;
   }
 
@@ -129,21 +129,28 @@ export default function MySubmissionsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
                                   <FileText className="mr-2 h-4 w-4" />
                                   <span>View Details</span>
                               </DropdownMenuItem>
-                              {submission.status === 'Amendment' && (
-                                  <DropdownMenuItem
+                              
+                              {submission.status === 'Action Required' && submission.pendingAmendments && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuLabel className="text-destructive">Action Required</DropdownMenuLabel>
+                                  {submission.pendingAmendments.map(req => (
+                                    <DropdownMenuItem
+                                      key={req.id}
                                       className="text-destructive focus:text-destructive"
                                       onClick={() => {
-                                          setModalSubmission(submission);
+                                        setActiveAmendment({ submission, request: req });
                                       }}
-                                  >
-                                      <RefreshCcw className="mr-2 h-4 w-4" />
-                                      <span>Re-Upload</span>
-                                  </DropdownMenuItem>
+                                    >
+                                      {req.type === 'REPLACE_EXISTING' ? <RefreshCcw className="mr-2 h-4 w-4" /> : <FilePlus2 className="mr-2 h-4 w-4" />}
+                                      <span>{req.type === 'REPLACE_EXISTING' ? 'Replace' : 'Add'} {req.targetDocumentType}</span>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </>
                               )}
                           </DropdownMenuContent>
                       </DropdownMenu>
@@ -162,8 +169,10 @@ export default function MySubmissionsPage() {
         </CardContent>
       </Card>
       <AmendmentRequestInfoModal 
-        submission={modalSubmission}
-        onClose={() => setModalSubmission(null)}
+        isOpen={!!activeAmendment}
+        onOpenChange={(open) => !open && setActiveAmendment(null)}
+        submission={activeAmendment?.submission || null}
+        request={activeAmendment?.request || null}
       />
     </>
   );

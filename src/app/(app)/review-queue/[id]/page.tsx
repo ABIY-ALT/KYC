@@ -77,9 +77,7 @@ export default function SubmissionReviewPage() {
 
     const documentsByType = useMemo(() => {
         if (!submissionState) return [];
-        const initialDocs = submissionState.documents;
-        const amendmentDocs = (submissionState.amendmentHistory || []).flatMap(h => h.documents);
-        const allDocs = [...initialDocs, ...amendmentDocs];
+        const allDocs = submissionState.documents;
         
         const grouped = allDocs.reduce((acc, doc) => {
             const type = doc.documentType;
@@ -126,8 +124,7 @@ export default function SubmissionReviewPage() {
     
     const latestResponse = submissionState.amendmentHistory?.slice(-1)[0];
 
-    // This page is now primarily for review by Officers/Supervisors.
-    // Branch users can view it, but the amendment action has been moved.
+    // This page is now purely for review by Officers/Supervisors.
     return (
         <div>
             <Button variant="outline" onClick={() => router.back()} className="mb-6">
@@ -142,7 +139,7 @@ export default function SubmissionReviewPage() {
                         </CardHeader>
                     </Card>
 
-                    {submissionState.status === 'Amended - Pending Review' && latestResponse && (
+                    {submissionState.status === 'Pending Review' && latestResponse && (
                          <Card className="hover-lift bg-primary/5 border-primary">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-xl"><MessageSquareReply /> Branch Response</CardTitle>

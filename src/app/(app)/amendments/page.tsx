@@ -76,7 +76,7 @@ export default function AmendmentsPage() {
 
   useEffect(() => {
     // Start with submissions that require amendment
-    let data = submissions.filter(s => s.status === 'Amendment');
+    let data = submissions.filter(s => s.status === 'Action Required');
 
     // Apply role-based filtering for Officer or Branch Manager
     if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {

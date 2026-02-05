@@ -53,7 +53,7 @@ const branchToDistrictMap: { [key: string]: string } = {
     'North': 'Northern District',
 };
 const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
-const validStatuses: Submission['status'][] = ['Pending', 'Escalated', 'Amended - Pending Review'];
+const validStatuses: Submission['status'][] = ['Pending', 'Escalated', 'Pending Review'];
 
 
 export default function ReviewQueuePage() {
@@ -119,7 +119,7 @@ export default function ReviewQueuePage() {
         return 'secondary';
       case 'Escalated':
         return 'destructive';
-      case 'Amended - Pending Review':
+      case 'Pending Review':
         return 'default'; // Make it stand out
       default:
         return 'secondary';
@@ -158,7 +158,7 @@ export default function ReviewQueuePage() {
                 <SelectItem value="all">All Actionable</SelectItem>
                 {validStatuses.map(status => (
                     <SelectItem key={status} value={status}>
-                        {status === 'Amended - Pending Review' ? 'Branch Responded' : status}
+                        {status === 'Pending Review' ? 'Branch Responded' : status}
                     </SelectItem>
                 ))}
               </SelectContent>
@@ -211,7 +211,7 @@ export default function ReviewQueuePage() {
                     <TableCell className="hidden md:table-cell">{submission.branch}</TableCell>
                     <TableCell>
                     <Badge variant={getBadgeVariant(submission.status)}>
-                        {submission.status === 'Amended - Pending Review' ? 'Branch Responded' : submission.status}
+                        {submission.status === 'Pending Review' ? 'Branch Responded' : submission.status}
                     </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">

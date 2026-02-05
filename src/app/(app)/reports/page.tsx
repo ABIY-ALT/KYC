@@ -48,7 +48,7 @@ import { doc } from 'firebase/firestore';
 // Helper to get unique values for filters
 const uniqueBranches = [...new Set(branchPerformanceData.map(item => item.name))];
 const uniqueOfficers = [...new Set(officerPerformanceData.map(item => item.name))];
-const uniqueStatuses: Submission['status'][] = ['Pending', 'Approved', 'Rejected', 'Amendment', 'Escalated'];
+const uniqueStatuses: Submission['status'][] = ['Pending', 'Approved', 'Rejected', 'Action Required', 'Escalated', 'Pending Review'];
 const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
 
 // Mapping to enable filtering by district
@@ -188,7 +188,7 @@ export default function ReportsPage() {
         return 'destructive';
       case 'Rejected':
         return 'destructive';
-      case 'Amendment':
+      case 'Action Required':
         return 'outline';
       default:
         return 'secondary';

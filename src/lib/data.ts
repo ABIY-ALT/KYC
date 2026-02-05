@@ -19,17 +19,26 @@ export type Amendment = {
   documents: SubmittedDocument[];
 };
 
+export type AmendmentRequest = {
+  id: string;
+  type: 'REPLACE_EXISTING' | 'ADD_NEW';
+  targetDocumentId?: string; // For REPLACE_EXISTING
+  targetDocumentType: string; // For both: specifies what doc type is being replaced or added
+  comment: string;
+  requestedAt: string;
+  status: 'PENDING' | 'RESOLVED';
+};
+
 export type Submission = {
   id: string;
   customerName: string;
   branch: string;
   submittedAt: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Amendment' | 'Escalated' | 'Amended - Pending Review';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Action Required' | 'Escalated' | 'Pending Review';
   officer: string;
   documents: SubmittedDocument[];
   amendmentHistory?: Amendment[];
-  amendmentReason?: string; // The most recent reason
-  amendmentRequestedAt?: string; // Timestamp for the current outstanding request
+  pendingAmendments?: AmendmentRequest[];
 };
 
 export const submissions: Submission[] = [
@@ -60,13 +69,30 @@ export const submissions: Submission[] = [
     customerName: 'Carol White', 
     branch: 'Eastside', 
     submittedAt: '2023-10-25T14:00:00Z', 
-    status: 'Amendment', 
+    status: 'Action Required', 
     officer: 'Diana Prince',
-    amendmentReason: "The provided ID is blurry and unreadable. Please upload a high-resolution copy.",
-    amendmentRequestedAt: '2023-10-26T12:00:00Z',
     documents: [
       { id: 'doc-003-1', fileName: 'carol_id_blurry.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc3/800/1100', size: 345678, format: 'image/png', uploadedAt: '2023-10-25T14:00:00Z', version: 1 }
     ],
+    pendingAmendments: [
+      {
+        id: 'amend-req-001',
+        type: 'REPLACE_EXISTING',
+        targetDocumentId: 'doc-003-1',
+        targetDocumentType: 'National ID',
+        comment: "The provided ID is blurry and unreadable. Please upload a high-resolution copy.",
+        requestedAt: '2023-10-26T12:00:00Z',
+        status: 'PENDING'
+      },
+      {
+        id: 'amend-req-002',
+        type: 'ADD_NEW',
+        targetDocumentType: 'Proof of Address',
+        comment: "Please also provide a recent utility bill as proof of address.",
+        requestedAt: '2023-10-26T12:01:00Z',
+        status: 'PENDING'
+      }
+    ]
   },
   { 
     id: 'SUB004', 
@@ -96,10 +122,11 @@ export const submissions: Submission[] = [
     customerName: 'Frank Blue', 
     branch: 'Uptown', 
     submittedAt: '2023-10-27T08:00:00Z', 
-    status: 'Amended - Pending Review', 
+    status: 'Pending Review', 
     officer: 'Charlie Davis',
     documents: [
-      { id: 'doc-006-1-orig', fileName: 'frank_license_old.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-26T08:00:00Z', version: 1 }
+      { id: 'doc-006-1-orig', fileName: 'frank_license_old.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-26T08:00:00Z', version: 1 },
+      { id: 'doc-006-1-v2', fileName: 'frank_license_new.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6-v2/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-27T08:00:00Z', version: 2 }
     ],
     amendmentHistory: [
         {
