@@ -1,8 +1,6 @@
-
 'use client';
 
 import { Menu } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import Logo from '@/components/logo';
@@ -10,6 +8,7 @@ import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
 import { ThemeToggle } from './theme-toggle';
 import type { User } from '@/lib/data';
+import UserNav from './user-nav';
 
 export default function AppHeader({ user }: { user: User | null }) {
   return (
@@ -35,10 +34,11 @@ export default function AppHeader({ user }: { user: User | null }) {
             </ScrollArea>
         </SheetContent>
       </Sheet>
-      <div className="w-full flex-1">
-        
+      <div className="w-full flex-1" />
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        <UserNav user={user} />
       </div>
-      <ThemeToggle />
     </header>
   );
 }
