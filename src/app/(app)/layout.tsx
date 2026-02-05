@@ -25,8 +25,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     }
   }, [authUser, isUserLoading, router]);
 
-  // Show loading skeleton until we have both the auth user and their corresponding Firestore profile
-  const isLoading = isUserLoading || (authUser && !userData);
+  // Show loading skeleton while either auth state or profile data is being determined.
+  const isLoading = isUserLoading || isProfileLoading;
 
   if (isLoading || !authUser) {
     return (
@@ -61,10 +61,24 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // If user is authenticated but no profile data is found, create a fallback object.
+  // This prevents crashes if the Firestore doc doesn't exist yet (e.g. after signup).
+  const displayUser = userData ?? (authUser ? { 
+    id: authUser.uid,
+    email: authUser.email || 'new.user@kycflow.com',
+    firstName: 'New',
+    lastName: 'User',
+    username: authUser.email?.split('@')[0] || 'newuser',
+    role: 'Officer',
+    branch: 'Unassigned',
+    district: 'Unassigned',
+    status: 'Active',
+  } : null);
+
   return (
     <SubmissionsProvider>
       <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-        <AppSidebar user={userData} />
+        <AppSidebar user={displayUser} />
         <div className="flex flex-col">
           <AppHeader />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
