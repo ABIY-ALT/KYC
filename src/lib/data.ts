@@ -6,6 +6,16 @@ export type SubmittedDocument = {
   size: number;
   format: string;
   uploadedAt: string;
+  version?: number;
+};
+
+export type Amendment = {
+  requestedAt: string;
+  requestedBy: string; // Officer's name or ID
+  reason: string;
+  respondedAt?: string;
+  responseComment?: string;
+  documents: SubmittedDocument[];
 };
 
 export type Submission = {
@@ -13,9 +23,11 @@ export type Submission = {
   customerName: string;
   branch: string;
   submittedAt: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Amendment' | 'Escalated';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Amendment' | 'Escalated' | 'Amended - Pending Review';
   officer: string;
   documents: SubmittedDocument[];
+  amendmentHistory?: Amendment[];
+  amendmentReason?: string; // The most recent reason
 };
 
 export const submissions: Submission[] = [
@@ -27,7 +39,7 @@ export const submissions: Submission[] = [
     status: 'Pending', 
     officer: 'N/A', 
     documents: [
-      { id: 'doc-001-1', fileName: 'alice_passport.pdf', documentType: 'Passport', url: 'https://picsum.photos/seed/doc1/800/1100', size: 123456, format: 'application/pdf', uploadedAt: '2023-10-26T10:00:00Z' }
+      { id: 'doc-001-1', fileName: 'alice_passport.pdf', documentType: 'Passport', url: 'https://picsum.photos/seed/doc1/800/1100', size: 123456, format: 'application/pdf', uploadedAt: '2023-10-26T10:00:00Z', version: 1 }
     ]
   },
   { 
@@ -38,7 +50,7 @@ export const submissions: Submission[] = [
     status: 'Approved', 
     officer: 'Charlie Davis',
     documents: [
-      { id: 'doc-002-1', fileName: 'bob_license.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc2/800/1100', size: 234567, format: 'image/jpeg', uploadedAt: '2023-10-26T11:30:00Z' }
+      { id: 'doc-002-1', fileName: 'bob_license.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc2/800/1100', size: 234567, format: 'image/jpeg', uploadedAt: '2023-10-26T11:30:00Z', version: 1 }
     ]
   },
   { 
@@ -48,9 +60,10 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-25T14:00:00Z', 
     status: 'Amendment', 
     officer: 'Diana Prince',
+    amendmentReason: "The provided ID is blurry and unreadable. Please upload a high-resolution copy.",
     documents: [
-      { id: 'doc-003-1', fileName: 'carol_id.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc3/800/1100', size: 345678, format: 'image/png', uploadedAt: '2023-10-25T14:00:00Z' }
-    ]
+      { id: 'doc-003-1', fileName: 'carol_id_blurry.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc3/800/1100', size: 345678, format: 'image/png', uploadedAt: '2023-10-25T14:00:00Z', version: 1 }
+    ],
   },
   { 
     id: 'SUB004', 
@@ -60,8 +73,8 @@ export const submissions: Submission[] = [
     status: 'Escalated', 
     officer: 'Charlie Davis',
     documents: [
-      { id: 'doc-004-1', fileName: 'david_passport.jpg', documentType: 'Passport', url: 'https://picsum.photos/seed/doc4/800/1100', size: 456789, format: 'image/jpeg', uploadedAt: '2023-10-25T09:15:00Z' },
-      { id: 'doc-004-2', fileName: 'david_application.pdf', documentType: 'Application Form', url: 'https://picsum.photos/seed/doc4-2/800/1100', size: 150234, format: 'application/pdf', uploadedAt: '2023-10-25T09:15:00Z' }
+      { id: 'doc-004-1', fileName: 'david_passport.jpg', documentType: 'Passport', url: 'https://picsum.photos/seed/doc4/800/1100', size: 456789, format: 'image/jpeg', uploadedAt: '2023-10-25T09:15:00Z', version: 1 },
+      { id: 'doc-004-2', fileName: 'david_application.pdf', documentType: 'Application Form', url: 'https://picsum.photos/seed/doc4-2/800/1100', size: 150234, format: 'application/pdf', uploadedAt: '2023-10-25T09:15:00Z', version: 1 }
     ]
   },
   { 
@@ -72,7 +85,7 @@ export const submissions: Submission[] = [
     status: 'Rejected', 
     officer: 'Diana Prince',
     documents: [
-      { id: 'doc-005-1', fileName: 'eve_bill.pdf', documentType: 'Supporting Document', url: 'https://picsum.photos/seed/doc5/800/1100', size: 98765, format: 'application/pdf', uploadedAt: '2023-10-24T16:45:00Z' }
+      { id: 'doc-005-1', fileName: 'eve_bill.pdf', documentType: 'Supporting Document', url: 'https://picsum.photos/seed/doc5/800/1100', size: 98765, format: 'application/pdf', uploadedAt: '2023-10-24T16:45:00Z', version: 1 }
     ]
   },
   { 
@@ -80,10 +93,21 @@ export const submissions: Submission[] = [
     customerName: 'Frank Blue', 
     branch: 'Uptown', 
     submittedAt: '2023-10-27T08:00:00Z', 
-    status: 'Pending', 
-    officer: 'N/A',
+    status: 'Amended - Pending Review', 
+    officer: 'Charlie Davis',
     documents: [
-      { id: 'doc-006-1', fileName: 'frank_license.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-27T08:00:00Z' }
+      { id: 'doc-006-1-orig', fileName: 'frank_license_old.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-26T08:00:00Z', version: 1 }
+    ],
+    amendmentHistory: [
+        {
+            requestedAt: '2023-10-26T14:00:00Z',
+            requestedBy: 'Charlie Davis',
+            reason: 'Signature does not match the one on the application form.',
+            respondedAt: '2023-10-27T08:00:00Z',
+            documents: [
+                 { id: 'doc-006-1-v2', fileName: 'frank_license_new.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6-v2/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-27T08:00:00Z', version: 2 }
+            ]
+        }
     ]
   },
   { 
@@ -94,8 +118,8 @@ export const submissions: Submission[] = [
     status: 'Pending', 
     officer: 'N/A',
     documents: [
-       { id: 'doc-007-1', fileName: 'grace_id.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc7/800/1100', size: 301234, format: 'image/png', uploadedAt: '2023-10-27T09:00:00Z' },
-       { id: 'doc-007-2', fileName: 'grace_biz_license.pdf', documentType: 'Business License', url: 'https://picsum.photos/seed/doc7-2/800/1100', size: 504873, format: 'application/pdf', uploadedAt: '2023-10-27T09:00:00Z' }
+       { id: 'doc-007-1', fileName: 'grace_id.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc7/800/1100', size: 301234, format: 'image/png', uploadedAt: '2023-10-27T09:00:00Z', version: 1 },
+       { id: 'doc-007-2', fileName: 'grace_biz_license.pdf', documentType: 'Business License', url: 'https://picsum.photos/seed/doc7-2/800/1100', size: 504873, format: 'application/pdf', uploadedAt: '2023-10-27T09:00:00Z', version: 1 }
     ]
   },
 ];
@@ -201,7 +225,7 @@ export const statusDistributionData = [
 
 export type Notification = {
   id: string;
-  type: 'New Submission' | 'Amendment Request' | 'Approval' | 'Escalation' | 'SLA Warning';
+  type: 'New Submission' | 'Amendment Request' | 'Approval' | 'Escalation' | 'SLA Warning' | 'Amendment Submitted';
   message: string;
   timestamp: string;
   isRead: boolean;
@@ -225,6 +249,14 @@ export const notifications: Notification[] = [
     isRead: false,
     linkTo: '/review-queue/SUB004',
   },
+   {
+    id: 'notif-007',
+    type: 'Amendment Submitted',
+    message: 'Frank Blue has submitted amended documents for SUB006.',
+    timestamp: '2023-10-27T08:05:00Z',
+    isRead: false,
+    linkTo: '/review-queue/SUB006',
+  },
   {
     id: 'notif-003',
     type: 'Approval',
@@ -244,10 +276,10 @@ export const notifications: Notification[] = [
   {
     id: 'notif-005',
     type: 'SLA Warning',
-    message: 'Submission SUB006 is nearing its SLA deadline.',
+    message: 'Submission SUB001 is nearing its SLA deadline.',
     timestamp: '2023-10-27T11:30:00Z',
     isRead: false,
-    linkTo: '/review-queue/SUB006',
+    linkTo: '/review-queue/SUB001',
   },
   {
     id: 'notif-006',
@@ -370,6 +402,17 @@ export const auditLogs: AuditLog[] = [
     entityType: 'User',
     entityId: 'usr-man-1',
     details: 'Deactivated user: Maria Garcia (usr-man-1)',
+  },
+  {
+    id: 'log-008',
+    timestamp: '2023-10-27T08:00:00Z',
+    userId: 'usr-man-1', // Assuming a branch manager or user from the branch resubmitted
+    userName: 'Maria Garcia',
+    userAvatar: 'user-avatar-4',
+    action: 'SUBMIT_AMENDMENT',
+    entityType: 'Submission',
+    entityId: 'SUB006',
+    details: 'Uploaded new version of Driver\'s License.',
   },
 ];
     

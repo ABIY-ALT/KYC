@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search, AlertCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -109,9 +109,9 @@ export default function AmendmentsPage() {
   return (
     <Card className="hover-lift">
       <CardHeader>
-        <CardTitle className="gradient-text">Amendment Management</CardTitle>
+        <CardTitle className="gradient-text">Amendment Inbox</CardTitle>
         <CardDescription>
-          Review and process submissions that require amendments. Use filters to narrow down the list.
+          Review and process submissions that require amendments. These items require your action.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -175,7 +175,10 @@ export default function AmendmentsPage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{submission.branch}</TableCell>
                     <TableCell>
-                        <Badge variant="outline">{submission.status}</Badge>
+                        <Badge variant="destructive" className="gap-1">
+                            <AlertCircle className="h-3 w-3"/>
+                            Action Required
+                        </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                         {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
@@ -190,9 +193,6 @@ export default function AmendmentsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
-                                    View Details
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
                                     Process Amendment
                                 </DropdownMenuItem>

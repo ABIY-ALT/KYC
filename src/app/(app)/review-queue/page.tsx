@@ -53,6 +53,8 @@ const branchToDistrictMap: { [key: string]: string } = {
     'North': 'Northern District',
 };
 const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
+const validStatuses: Submission['status'][] = ['Pending', 'Escalated', 'Amended - Pending Review'];
+
 
 export default function ReviewQueuePage() {
   const router = useRouter();
@@ -75,8 +77,8 @@ export default function ReviewQueuePage() {
   const uniqueBranches = [...new Set(submissions.map(s => s.branch))];
 
   useEffect(() => {
-    // Initial data is only pending or escalated
-    let data = submissions.filter(s => s.status === 'Pending' || s.status === 'Escalated');
+    // Initial data is anything that requires an officer/supervisor's attention
+    let data = submissions.filter(s => validStatuses.includes(s.status));
 
     // Apply role-based filtering for Officer or Branch Manager
     if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
@@ -111,6 +113,19 @@ export default function ReviewQueuePage() {
     setFilters(prev => ({ ...prev, [filterName]: value }));
   };
 
+  const getBadgeVariant = (status: Submission['status']): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'Pending':
+        return 'secondary';
+      case 'Escalated':
+        return 'destructive';
+      case 'Amended - Pending Review':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <Card className="hover-lift">
       <CardHeader>
@@ -140,9 +155,10 @@ export default function ReviewQueuePage() {
             <Select value={filters.status} onValueChange={v => handleFilterChange('status', v)}>
               <SelectTrigger id="status-filter"><SelectValue placeholder="Select Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Pending/Escalated</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Escalated">Escalated</SelectItem>
+                <SelectItem value="all">All Actionable</SelectItem>
+                {validStatuses.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -192,7 +208,7 @@ export default function ReviewQueuePage() {
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{submission.branch}</TableCell>
                     <TableCell>
-                    <Badge variant={submission.status === 'Escalated' ? 'destructive' : 'secondary'}>
+                    <Badge variant={getBadgeVariant(submission.status)}>
                         {submission.status}
                     </Badge>
                     </TableCell>
