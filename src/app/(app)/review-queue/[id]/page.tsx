@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
@@ -18,7 +19,6 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowStatus } from '@/components/workflow-status';
 import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertTriangle, MessageSquareReply, CheckCircle, FileUp, FileClock, CheckCircle2 } from "lucide-react";
@@ -38,6 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 
 
 const RESPONSE_TYPES = [
@@ -259,32 +260,27 @@ export default function SubmissionReviewPage() {
         // AMENDMENT MODE VIEW
         return (
             <div>
-                 <Button variant="outline" onClick={() => router.back()} className="mb-6"><ArrowLeft /> Back</Button>
+                <Button variant="outline" onClick={() => router.back()} className="mb-6"><ArrowLeft /> Back</Button>
                 
-                <Alert variant="destructive" className="mb-6 sticky top-20 z-20">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Amendment Requested by KYC Officer</AlertTitle>
-                    <AlertDescription>
-                        Status: Action Required. Requested On: {format(new Date(submissionState.amendmentRequestedAt!), "PPP 'at' p")}
-                    </AlertDescription>
-                </Alert>
-
                 <div className="space-y-8">
-                    <Card className="hover-lift">
-                        <CardHeader>
-                            <CardTitle>Step 1: Review Amendment Request</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <Label className="font-semibold text-muted-foreground">KYC Officer Comment</Label>
-                            <p className="text-foreground bg-muted p-3 rounded-md mt-2">{submissionState.amendmentReason}</p>
-                        </CardContent>
-                    </Card>
+                     <Alert variant="destructive" className="mb-6">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle className="text-lg mb-2">Action Required: Amendment Requested</AlertTitle>
+                        <AlertDescription className="space-y-2">
+                            <p>A KYC officer has requested changes for this submission. Please review their comments and re-upload the corrected documents.</p>
+                            <div className="p-4 bg-background/50 rounded-md border border-destructive/20">
+                                <p className="font-semibold text-destructive-foreground">KYC Officer's Comment:</p>
+                                <p className="text-destructive-foreground/90 mt-1">"{submissionState.amendmentReason || 'No reason provided.'}"</p>
+                            </div>
+                             <p className="text-xs pt-2">Requested On: {format(new Date(submissionState.amendmentRequestedAt!), "PPP 'at' p")}</p>
+                        </AlertDescription>
+                    </Alert>
 
                     <Card>
                          <CardHeader>
-                            <CardTitle>Step 2: Upload Corrected Documents & Respond</CardTitle>
+                            <CardTitle>Step 1: Upload Corrected Documents</CardTitle>
                             <CardDescription>
-                                Replace or re-upload the documents that need correction.
+                                Replace the documents that need correction. The status icon will turn green once a new file is uploaded for a row.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -303,7 +299,7 @@ export default function SubmissionReviewPage() {
                                         const amendedFile = fields.find(f => f.originalDocId === doc.id)?.file;
 
                                         return (
-                                            <TableRow key={doc.id}>
+                                            <TableRow key={doc.id} data-amended={isAmended} className="data-[amended=true]:bg-green-50 dark:data-[amended=true]:bg-green-950/50 transition-colors">
                                                 <TableCell className="text-center">
                                                     {isAmended ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
                                                 </TableCell>
@@ -336,7 +332,7 @@ export default function SubmissionReviewPage() {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Step 3: Provide Response</CardTitle>
+                            <CardTitle>Step 2: Provide Response</CardTitle>
                         </CardHeader>
                         <Form {...form}>
                         <form className="space-y-6 p-6 pt-0">
