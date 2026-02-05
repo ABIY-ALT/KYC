@@ -90,6 +90,7 @@ function InlineUploader({ originalDoc, onFileUploaded }: { originalDoc: Submitte
 }
 
 export default function SubmissionReviewPage({ params }: { params: { id: string } }) {
+    const { id } = params;
     const { submissions, updateSubmissionStatus, submitAmendment } = useSubmissions();
     const { user: authUser } = useUser();
     const firestore = useFirestore();
@@ -104,10 +105,10 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const submission = submissions.find(s => s.id === params.id);
+        const submission = submissions.find(s => s.id === id);
         setSubmissionState(submission);
         setIsLoading(false);
-    }, [params.id, submissions]);
+    }, [id, submissions]);
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
