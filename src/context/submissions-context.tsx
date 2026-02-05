@@ -6,14 +6,20 @@ import { submissions as initialSubmissions, type Submission, type SubmittedDocum
 
 type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
 
-type FileData = { name: string; type: string; size: number; url: string; };
+type AmendedFilePayload = {
+    file: File;
+    documentType: string;
+    originalDocumentId?: string;
+    amendmentRequestId: string;
+    previewUrl: string;
+};
 
 type SubmissionsContextType = {
   submissions: Submission[];
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
   resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => void;
-  submitAmendment: (submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string) => Promise<void>;
+  submitAmendment: (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string) => Promise<void>;
 };
 
 const SubmissionsContext = createContext<SubmissionsContextType | undefined>(undefined);
@@ -106,7 +112,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
       );
   }, []);
 
-  const submitAmendment = useCallback(async (submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string): Promise<void> => {
+  const submitAmendment = useCallback(async (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string): Promise<void> => {
     return new Promise(resolve => {
         setTimeout(() => { // Simulate async operation
             setSubmissions(currentSubmissions =>
@@ -114,11 +120,20 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                     if (s.id === submissionId) {
                         const reasons = s.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
                         
-                        // Replace Data URLs with placeholder URLs to keep the main state light
-                        const stableNewDocuments = newDocuments.map(doc => ({
-                            ...doc,
-                            url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`
-                        }));
+                        const stableNewDocuments: SubmittedDocument[] = amendedFiles.map(f => {
+                            const originalDoc = s.documents.find(d => d.id === f.originalDocumentId);
+                            const version = originalDoc ? (originalDoc.version || 0) + 1 : 1;
+                            return {
+                                id: `doc-${Date.now()}-${Math.random()}`,
+                                fileName: f.file.name,
+                                documentType: f.documentType,
+                                url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`, // Placeholder URL
+                                size: f.file.size,
+                                format: f.file.type,
+                                uploadedAt: new Date().toISOString(),
+                                version: version,
+                            };
+                        });
                         
                         const newHistoryEntry: Amendment = {
                             requestedAt: s.pendingAmendments?.[0]?.requestedAt || new Date().toISOString(),
@@ -132,21 +147,19 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                         
                         const updatedDocuments = [...s.documents, ...stableNewDocuments];
 
-                        const updatedSubmission: Submission = {
+                        return {
                             ...s,
                             status: 'Pending Review',
                             documents: updatedDocuments,
                             amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
                             pendingAmendments: [],
                         };
-
-                        return updatedSubmission;
                     }
                     return s;
                 })
             );
             resolve();
-        }, 500); // Small delay to simulate network latency
+        }, 500);
     });
   }, []);
 

@@ -20,18 +20,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineUploader } from "@/components/amendment-uploader";
 
-const fileObjectSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number(),
-  url: z.string(), // This will be a Data URL
-});
-
 const amendedFileSchema = z.object({
     amendmentRequestId: z.string(),
     documentType: z.string(),
     originalDocumentId: z.string().optional(),
-    file: fileObjectSchema,
+    file: z.instanceof(File),
+    previewUrl: z.string(),
 });
 
 const amendmentResponseSchema = z.object({
@@ -78,6 +72,14 @@ export default function AmendSubmissionPage() {
         setIsLoading(false);
     }, [params.id, submissions]);
 
+    // Memory cleanup for object URLs
+    useEffect(() => {
+        return () => {
+            const files = form.getValues('amendedFiles');
+            files.forEach(f => URL.revokeObjectURL(f.previewUrl));
+        }
+    }, [form]);
+
     const handleFileUploaded = useCallback((request: AmendmentRequest, uploadedFile: File) => {
         if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
             toast({
@@ -88,40 +90,34 @@ export default function AmendSubmissionPage() {
             return;
         }
         
-        const reader = new FileReader();
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-
-            const fileData = {
-                amendmentRequestId: request.id,
-                documentType: request.targetDocumentType,
-                originalDocumentId: request.targetDocumentId,
-                file: {
-                    name: uploadedFile.name,
-                    type: uploadedFile.type,
-                    size: uploadedFile.size,
-                    url: dataUrl,
-                },
-            };
-
-            const currentFiles = form.getValues("amendedFiles");
-            const existingIndex = currentFiles.findIndex(
-                f => f.amendmentRequestId === request.id
-            );
-
-            if (existingIndex >= 0) {
-                update(existingIndex, fileData);
-            } else {
-                append(fileData);
-            }
-            form.trigger("amendedFiles");
+        const fileData = {
+            amendmentRequestId: request.id,
+            documentType: request.targetDocumentType,
+            originalDocumentId: request.targetDocumentId,
+            file: uploadedFile,
+            previewUrl: URL.createObjectURL(uploadedFile),
         };
-        reader.readAsDataURL(uploadedFile);
+
+        const currentFiles = form.getValues("amendedFiles");
+        const existingIndex = currentFiles.findIndex(
+            f => f.amendmentRequestId === request.id
+        );
+
+        if (existingIndex >= 0) {
+            URL.revokeObjectURL(currentFiles[existingIndex].previewUrl); // Revoke old URL
+            update(existingIndex, fileData);
+        } else {
+            append(fileData);
+        }
+        form.trigger("amendedFiles");
+
     }, [append, form, toast, update]);
 
     const handleFileRemoved = useCallback((amendmentRequestId: string) => {
         const fieldIndex = fields.findIndex(f => f.amendmentRequestId === amendmentRequestId);
         if (fieldIndex > -1) {
+            const fileToRemove = fields[fieldIndex];
+            URL.revokeObjectURL(fileToRemove.previewUrl);
             remove(fieldIndex);
         }
     }, [fields, remove]);
@@ -129,24 +125,10 @@ export default function AmendSubmissionPage() {
     const handleAmendmentSubmit = async (data: FormValues) => {
       if (!submission || isSubmitting) return;
     
+      setIsSubmitting(true);
+    
       try {
-        setIsSubmitting(true);
-    
-        const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
-            const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
-            return {
-                id: `doc-${Date.now()}-${index}`,
-                fileName: f.file.name,
-                documentType: f.documentType,
-                url: f.file.url, 
-                size: f.file.size,
-                format: f.file.type,
-                uploadedAt: new Date().toISOString(),
-                version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
-            };
-        });
-    
-        await submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
+        await submitAmendment(submission.id, data.amendedFiles, data.responseComment, 'Fully Amended');
     
         toast({
           title: "Amendment Response Sent",
@@ -164,6 +146,7 @@ export default function AmendSubmissionPage() {
             title: "Submission Failed",
             description: "Something went wrong, please try again.",
         });
+      } finally {
         setIsSubmitting(false);
       }
     };
@@ -197,24 +180,28 @@ export default function AmendSubmissionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {submission.pendingAmendments.map(request => (
-                            <div key={request.id}>
-                                <Alert variant="destructive" className="mb-2">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Officer Comment</AlertTitle>
-                                    <AlertDescription>
-                                        {request.comment}
-                                    </AlertDescription>
-                                </Alert>
-                                <InlineUploader 
-                                    mode={request.type === 'REPLACE_EXISTING' ? 'REPLACE' : 'ADD'}
-                                    documentType={request.targetDocumentType}
-                                    uploadedFile={amendedFiles.find(f => f.amendmentRequestId === request.id)?.file}
-                                    onFileUploaded={(file) => handleFileUploaded(request, file)}
-                                    onFileRemoved={() => handleFileRemoved(request.id)}
-                                />
-                            </div>
-                        ))}
+                        {submission.pendingAmendments.map(request => {
+                            const fileDataForThisRequest = amendedFiles.find(f => f.amendmentRequestId === request.id);
+                            return (
+                                <div key={request.id}>
+                                    <Alert variant="destructive" className="mb-2">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Officer Comment</AlertTitle>
+                                        <AlertDescription>
+                                            {request.comment}
+                                        </AlertDescription>
+                                    </Alert>
+                                    <InlineUploader 
+                                        mode={request.type === 'REPLACE_EXISTING' ? 'REPLACE' : 'ADD'}
+                                        documentType={request.targetDocumentType}
+                                        uploadedFile={fileDataForThisRequest?.file}
+                                        previewUrl={fileDataForThisRequest?.previewUrl}
+                                        onFileUploaded={(file) => handleFileUploaded(request, file)}
+                                        onFileRemoved={() => handleFileRemoved(request.id)}
+                                    />
+                                </div>
+                            )
+                        })}
                          <FormField
                             control={form.control}
                             name="amendedFiles"

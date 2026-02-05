@@ -6,17 +6,13 @@ import { File as FileIcon, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
-type UploadedFile = {
-  name: string;
-  size: number;
-  type: string;
-  url: string; // Object URL for preview
-};
+type UploadedFile = File;
 
 type InlineUploaderProps = {
   mode: 'REPLACE' | 'ADD';
   documentType: string;
   uploadedFile?: UploadedFile;
+  previewUrl?: string;
   onFileUploaded: (file: File) => void;
   onFileRemoved: () => void;
 };
@@ -25,6 +21,7 @@ export function InlineUploader({
   mode,
   documentType,
   uploadedFile,
+  previewUrl,
   onFileUploaded,
   onFileRemoved,
 }: InlineUploaderProps) {
@@ -52,8 +49,8 @@ export function InlineUploader({
       ) : (
         <div className="flex justify-between items-center bg-background p-2 rounded border">
           <div className="flex items-center gap-2 overflow-hidden">
-             {uploadedFile.type.startsWith("image/") ? (
-                <Image src={uploadedFile.url} alt={uploadedFile.name} width={40} height={40} className="h-10 w-10 object-cover rounded-sm flex-shrink-0" />
+             {uploadedFile.type.startsWith("image/") && previewUrl ? (
+                <Image src={previewUrl} alt={uploadedFile.name} width={40} height={40} className="h-10 w-10 object-cover rounded-sm flex-shrink-0" />
              ) : (
                 <FileIcon className="h-10 w-10 text-muted-foreground flex-shrink-0" />
              )}
