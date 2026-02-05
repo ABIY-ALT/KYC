@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from '@/components/ui/label';
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowStatus } from '@/components/workflow-status';
 import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertTriangle, MessageSquareReply, CheckCircle, FileUp, FileClock, CheckCircle2 } from "lucide-react";
@@ -78,15 +78,26 @@ function InlineUploader({ originalDoc, onFileUploaded }: { originalDoc: Submitte
         }
     }, [onFileUploaded]);
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false, accept: {'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf']} });
+    const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
+        onDrop,
+        multiple: false,
+        noClick: true,
+        noKeyboard: true,
+        accept: { 'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf'] }
+    });
 
     return (
-        <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
+        <div {...getRootProps()} className={cn(
+            "p-2 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors flex items-center justify-center",
+            isDragActive 
+                ? "border-primary bg-primary/10" 
+                : "border-transparent hover:border-input"
+        )}>
             <input {...getInputProps()} />
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <UploadCloud className="h-5 w-5" />
-                <p className="text-sm">{isDragActive ? 'Drop file...' : 'Click or drag to replace'}</p>
-            </div>
+            <Button type="button" variant="outline" size="sm" onClick={open}>
+                <FileUp className="mr-2" />
+                {isDragActive ? 'Drop to Replace' : 'Replace File'}
+            </Button>
         </div>
     );
 }
@@ -107,8 +118,8 @@ export default function SubmissionReviewPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Find submission based on id from params, only when params.id is available
-        if (params && params.id) {
+        // Find submission based on id from params
+        if (params) {
             const submission = submissions.find(s => s.id === params.id);
             setSubmissionState(submission);
         }
@@ -493,3 +504,5 @@ export default function SubmissionReviewPage() {
         </div>
     );
 }
+
+    
