@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useMemo } from "react";
 import {
     Avatar,
     AvatarFallback,
@@ -19,13 +21,29 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { kpiData, submissionTrendData } from "@/lib/data";
+import { kpiData, submissionTrendData, type User as UserData } from "@/lib/data";
 import { useSubmissions } from "@/context/submissions-context";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 export default function DashboardPage() {
     const { submissions } = useSubmissions();
+    const { user: authUser } = useUser();
+    const firestore = useFirestore();
+    const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
+    const { data: userData } = useDoc<UserData>(userDocRef);
+
     const userAvatars = PlaceHolderImages.filter(img => img.id.includes('user-avatar'));
+
+    const recentSubmissions = useMemo(() => {
+        let subs = submissions;
+        if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
+            subs = subs.filter(s => s.branch === userData.branch);
+        }
+        return subs.slice(0, 5);
+    }, [submissions, userData]);
 
     return (
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
@@ -82,11 +100,11 @@ export default function DashboardPage() {
                     <CardHeader>
                         <CardTitle>Recent Submissions</CardTitle>
                         <CardDescription>
-                            A list of the most recent submissions.
+                            A list of the most recent submissions from your branch.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-6">
-                        {submissions.slice(0, 5).map((submission, index) => (
+                        {recentSubmissions.map((submission, index) => (
                             <div key={submission.id} className="flex items-center gap-4">
                                 <Avatar className="hidden h-9 w-9 sm:flex">
                                     <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt="Avatar" data-ai-hint={userAvatars[index % userAvatars.length].imageHint} />

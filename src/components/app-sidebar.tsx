@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -39,7 +40,7 @@ export default function AppSidebar({ user }: { user: User | null }) {
           <Logo />
         </div>
         <ScrollArea className="flex-1 py-2">
-          <AppNav />
+          <AppNav user={user} />
         </ScrollArea>
         <div className="mt-auto p-2 border-t">
             <DropdownMenu>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -38,7 +39,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { type Submission, districtPerformanceData } from '@/lib/data';
+import { type Submission, districtPerformanceData, type User as UserData } from "@/lib/data";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 // Mapping to enable filtering by district
 const branchToDistrictMap: { [key: string]: string } = {
@@ -55,6 +59,11 @@ export default function AmendmentsPage() {
   const router = useRouter();
   const { submissions } = useSubmissions();
   
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
+  const { data: userData } = useDoc<UserData>(userDocRef);
+
   const [filters, setFilters] = useState({
     branch: 'all',
     district: 'all',
@@ -68,6 +77,11 @@ export default function AmendmentsPage() {
   useEffect(() => {
     // Start with submissions that require amendment
     let data = submissions.filter(s => s.status === 'Amendment');
+
+    // Apply role-based filtering for Officer or Branch Manager
+    if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
+        data = data.filter(s => s.branch === userData.branch);
+    }
 
     if (filters.branch !== 'all') {
         data = data.filter(s => s.branch === filters.branch);
@@ -86,7 +100,7 @@ export default function AmendmentsPage() {
     }
 
     setFilteredSubmissions(data);
-  }, [filters, submissions]);
+  }, [filters, submissions, userData]);
 
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -118,7 +132,7 @@ export default function AmendmentsPage() {
           </div>
           <div className="grid gap-2 w-full md:max-w-xs">
             <Label htmlFor="branch-filter">Filter by Branch</Label>
-            <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)}>
+            <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)} disabled={!!userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')}>
               <SelectTrigger id="branch-filter"><SelectValue placeholder="Select Branch" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
@@ -128,7 +142,7 @@ export default function AmendmentsPage() {
           </div>
           <div className="grid gap-2 w-full md:max-w-xs">
             <Label htmlFor="district-filter">Filter by District</Label>
-            <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)}>
+            <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)} disabled={!!userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')}>
               <SelectTrigger id="district-filter"><SelectValue placeholder="Select District" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Districts</SelectItem>

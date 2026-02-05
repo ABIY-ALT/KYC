@@ -87,7 +87,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
         <AppSidebar user={displayUser} />
         <div className="flex flex-col">
-          <AppHeader />
+          <AppHeader user={displayUser} />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
             {/* Show a skeleton for the main content while the detailed profile loads */}
             {isProfileLoading ? <Skeleton className="h-64 w-full" /> : children}

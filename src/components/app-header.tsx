@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Menu } from 'lucide-react';
@@ -8,8 +9,9 @@ import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
 import { ThemeToggle } from './theme-toggle';
+import type { User } from '@/lib/data';
 
-export default function AppHeader() {
+export default function AppHeader({ user }: { user: User | null }) {
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
       <Sheet>
@@ -29,7 +31,7 @@ export default function AppHeader() {
                 <Logo />
             </div>
             <ScrollArea className="flex-1 py-2">
-                <AppNav isMobile />
+                <AppNav isMobile user={user} />
             </ScrollArea>
         </SheetContent>
       </Sheet>

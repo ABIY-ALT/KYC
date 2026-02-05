@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -32,6 +33,7 @@ import {
   officerPerformanceData,
   districtPerformanceData,
   type Submission,
+  type User as UserData,
 } from '@/lib/data';
 import { useSubmissions } from '@/context/submissions-context';
 import { Calendar as CalendarIcon, Download, FileText, SlidersHorizontal } from 'lucide-react';
@@ -39,6 +41,9 @@ import { format } from 'date-fns';
 import { type DateRange } from "react-day-picker";
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 // Helper to get unique values for filters
 const uniqueBranches = [...new Set(branchPerformanceData.map(item => item.name))];
@@ -59,6 +64,12 @@ const branchToDistrictMap: { [key: string]: string } = {
 export default function ReportsPage() {
   const { toast } = useToast();
   const { submissions } = useSubmissions();
+  
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
+  const { data: userData } = useDoc<UserData>(userDocRef);
+
   const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [filters, setFilters] = useState({
     branch: 'all',
@@ -69,12 +80,29 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState<Submission[]>([]);
   const [reportGenerated, setReportGenerated] = useState(false);
 
+  useEffect(() => {
+    // If the user is an officer or branch manager, automatically set and disable the branch/district filters.
+    if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
+        setFilters(prev => ({
+            ...prev,
+            branch: userData.branch,
+            district: branchToDistrictMap[userData.branch] || 'all'
+        }));
+    }
+  }, [userData]);
+
+
   const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
   };
 
   const handleGenerateReport = () => {
     let filteredData = submissions;
+
+    // Apply role-based filtering first for non-admins/supervisors
+    if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
+      filteredData = filteredData.filter(s => s.branch === userData.branch);
+    }
 
     if (date?.from) {
         const toDate = date.to ? new Date(date.to) : new Date(date.from);
@@ -86,13 +114,17 @@ export default function ReportsPage() {
         });
     }
 
-    if (filters.branch !== 'all') {
-      filteredData = filteredData.filter(s => s.branch === filters.branch);
+    // These filters are only applied if the user is not role-restricted (i.e., Admin/Supervisor)
+    if (userData && (userData.role === 'Admin' || userData.role === 'Supervisor')) {
+      if (filters.branch !== 'all') {
+        filteredData = filteredData.filter(s => s.branch === filters.branch);
+      }
+      
+      if (filters.district !== 'all') {
+          filteredData = filteredData.filter(s => branchToDistrictMap[s.branch] === filters.district);
+      }
     }
-    
-    if (filters.district !== 'all') {
-        filteredData = filteredData.filter(s => branchToDistrictMap[s.branch] === filters.district);
-    }
+
 
     if (filters.officer !== 'all') {
       filteredData = filteredData.filter(s => s.officer === filters.officer);
@@ -160,6 +192,8 @@ export default function ReportsPage() {
     }
   };
 
+  const isFilterDisabled = !!userData && (userData.role === 'Officer' || userData.role === 'Branch Manager');
+
   return (
     <div className="space-y-6">
       <Card>
@@ -213,7 +247,7 @@ export default function ReportsPage() {
 
             <div className="grid gap-2">
               <Label htmlFor="branch">Branch</Label>
-              <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)}>
+              <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)} disabled={isFilterDisabled}>
                 <SelectTrigger id="branch"><SelectValue placeholder="Select Branch" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Branches</SelectItem>
@@ -246,7 +280,7 @@ export default function ReportsPage() {
             
             <div className="grid gap-2">
               <Label htmlFor="district">District</Label>
-              <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)}>
+              <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)} disabled={isFilterDisabled}>
                 <SelectTrigger id="district"><SelectValue placeholder="Select District" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Districts</SelectItem>

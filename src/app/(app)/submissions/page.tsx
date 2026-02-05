@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Card,
@@ -19,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { type Submission } from "@/lib/data";
+import { type Submission, type User as UserData } from "@/lib/data";
 import { MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,14 +31,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 export default function MySubmissionsPage() {
   const router = useRouter();
   const { submissions } = useSubmissions();
   
-  // In a real application, you would fetch submissions for the logged-in user.
-  // For now, we'll display all submissions.
-  const userSubmissions: Submission[] = submissions;
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
+  const { data: userData } = useDoc<UserData>(userDocRef);
+
+  const userSubmissions: Submission[] = useMemo(() => {
+    if (userData && (userData.role === 'Officer' || userData.role === 'Branch Manager')) {
+      // For officers, filter submissions by their assigned branch
+      return submissions.filter(s => s.branch === userData.branch);
+    }
+    if (userData && (userData.role === 'Admin' || userData.role === 'Supervisor')) {
+      // Admins and supervisors see all submissions
+      return submissions;
+    }
+    // Default to empty or all based on desired behavior before user data loads
+    return submissions;
+  }, [submissions, userData]);
 
   const getBadgeVariant = (status: Submission['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch (status) {
@@ -60,7 +79,7 @@ export default function MySubmissionsPage() {
       <CardHeader>
         <CardTitle>My Submissions</CardTitle>
         <CardDescription>
-          A list of all your recent KYC submissions.
+          A list of all recent KYC submissions for your branch.
         </CardDescription>
       </CardHeader>
       <CardContent>

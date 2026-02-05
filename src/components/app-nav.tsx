@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -28,6 +29,7 @@ import {
   Settings,
   History,
 } from "lucide-react";
+import type { User as UserData } from "@/lib/data";
 
 type NavItem = {
   title: string;
@@ -74,8 +76,44 @@ const navItems: (NavItem | NavGroup)[] = [
   },
 ];
 
-export function AppNav({ isMobile = false }: { isMobile?: boolean }) {
+export function AppNav({ isMobile = false, user }: { isMobile?: boolean, user: UserData | null }) {
   const pathname = usePathname();
+
+  const getFilteredNavItems = () => {
+    if (!user) {
+        return [];
+    }
+
+    const { role } = user;
+
+    switch (role) {
+        case 'Admin':
+            return navItems;
+        
+        case 'Supervisor':
+        case 'Branch Manager':
+            return navItems.filter(item => 'title' in item && item.title !== 'Administration');
+            
+        case 'Officer':
+            const officerNavItems: (NavItem | NavGroup)[] = [
+                navItems[0], // Dashboard
+                navItems[1], // New Submission
+                navItems[2], // My Submissions
+                {
+                  title: 'Review',
+                  items: [
+                    { title: 'Review Queue', href: '/review-queue', icon: FileSearch }
+                  ]
+                }
+            ];
+            return officerNavItems;
+
+        default:
+            return [];
+    }
+  };
+  
+  const accessibleNavItems = getFilteredNavItems();
 
   const renderNavItem = (item: NavItem) => (
     <Button
@@ -120,7 +158,7 @@ export function AppNav({ isMobile = false }: { isMobile?: boolean }) {
 
   return (
     <nav className="grid items-start gap-1 px-2 text-sm font-medium">
-      {navItems.map((item) =>
+      {accessibleNavItems.map((item) =>
         "items" in item ? renderNavGroup(item) : renderNavItem(item)
       )}
     </nav>
