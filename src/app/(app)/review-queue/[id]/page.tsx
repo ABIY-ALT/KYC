@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { cn } from "@/lib/utils";
+import { format } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowStatus } from '@/components/workflow-status';
-import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertCircle, MessageSquareReply, CheckCircle } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -42,6 +43,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 const DOCUMENT_TYPES = [
   'National ID',
@@ -52,6 +54,12 @@ const DOCUMENT_TYPES = [
   'Supporting Document',
 ];
 
+const RESPONSE_TYPES = [
+    'Correction Provided',
+    'Additional Information',
+    'Query to Officer',
+];
+
 const fileSchema = z.object({
   file: z.instanceof(File),
   docType: z.string().min(1, "Please select a document type."),
@@ -59,7 +67,8 @@ const fileSchema = z.object({
 });
 
 const amendmentSchema = z.object({
-  comment: z.string().optional(),
+  responseType: z.string().min(1, "Please select a response type."),
+  comment: z.string().min(1, "A response message is required."),
   files: z.array(fileSchema).nonempty("At least one corrected document is required."),
 });
 
@@ -91,7 +100,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
     const form = useForm<FormValues>({
         resolver: zodResolver(amendmentSchema),
-        defaultValues: { comment: "", files: [] },
+        defaultValues: { responseType: "", comment: "", files: [] },
     });
     const { fields, append, remove } = useFieldArray({ control: form.control, name: "files" });
     const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -131,7 +140,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
             version: (submission.amendmentHistory?.length || 0) + 2
         }));
 
-        submitAmendment(submission.id, newDocuments, data.comment);
+        submitAmendment(submission.id, newDocuments, data.comment, data.responseType);
         
         toast({
             title: "Amendment Submitted",
@@ -147,7 +156,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
     // Determine user role - default to officer if not loaded
     const userRole = userData?.role || 'Officer';
-    const isReviewerUser = userRole === 'Supervisor' || userRole === 'Admin';
+    const isReviewerUser = userRole === 'Supervisor' || userRole === 'Admin' || userRole === 'Officer';
     const isBranchUser = userRole === 'Branch Manager' || userRole === 'Officer';
 
     // Combine original and amended documents for review
@@ -156,9 +165,13 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         ...(submission.amendmentHistory || []).flatMap(h => h.documents)
     ];
 
+    const latestResponse = submission.amendmentHistory?.slice(-1)[0];
 
     // Branch user responding to an amendment request
     if (isBranchUser && submission.status === 'Amendment') {
+        const requestDate = submission.amendmentRequestedAt ? format(new Date(submission.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
+        const placeholderTemplate = `All requested amendments have been completed. The corrected document(s) have been re-uploaded as per your comment dated ${requestDate}. Please proceed with review.`;
+
         return (
             <div>
                  <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
@@ -207,9 +220,29 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                         </Card>
 
                         <Card>
-                            <CardHeader><CardTitle>Upload Corrected Documents</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Respond to Amendment</CardTitle></CardHeader>
                             <Form {...form}>
                             <form className="space-y-6 p-6 pt-0" onSubmit={(e) => e.preventDefault()}>
+                                <FormField control={form.control} name="responseType" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Response Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a response type" /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {RESPONSE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="comment" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Response Message</FormLabel>
+                                        <FormControl><Textarea placeholder={placeholderTemplate} {...field} rows={4} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                 )} />
+
                                 <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
                                     <input {...getInputProps()} />
                                     <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -233,13 +266,6 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                     ))}
                                     </ScrollArea>
                                 )}
-                                 <FormField control={form.control} name="comment" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Optional Comment</FormLabel>
-                                        <FormControl><Textarea placeholder="Add a comment for the KYC officer..." {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                 )} />
                             </form>
                             </Form>
                              <CardFooter>
@@ -269,6 +295,31 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                             <CardDescription>ID: {submission.id} | Branch: {submission.branch}</CardDescription>
                         </CardHeader>
                     </Card>
+
+                    {submission.status === 'Amended - Pending Review' && latestResponse && (
+                         <Card className="hover-lift bg-primary/5 border-primary">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-xl"><MessageSquareReply /> Branch Response</CardTitle>
+                                <CardDescription>
+                                    Response received on {format(new Date(latestResponse.respondedAt!), "PPP 'at' p")}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <Label className="text-xs font-semibold">Response Type</Label>
+                                    <p>{latestResponse.responseType}</p>
+                                </div>
+                                <Separator/>
+                                <div>
+                                    <Label className="text-xs font-semibold">Branch Comment</Label>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{latestResponse.responseComment}</p>
+                                </div>
+                            </CardContent>
+                             <CardFooter>
+                                <Button variant="outline"><CheckCircle className="mr-2"/>Acknowledge & Continue</Button>
+                            </CardFooter>
+                        </Card>
+                    )}
 
                     {allDocuments.map((doc, index) => (
                         <Card key={doc.id} className="hover-lift">

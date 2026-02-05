@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { MoreHorizontal, Search } from "lucide-react";
+import { MoreHorizontal, Search, MessageSquarePlus } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,7 +120,7 @@ export default function ReviewQueuePage() {
       case 'Escalated':
         return 'destructive';
       case 'Amended - Pending Review':
-        return 'outline';
+        return 'default'; // Make it stand out
       default:
         return 'secondary';
     }
@@ -157,7 +157,9 @@ export default function ReviewQueuePage() {
               <SelectContent>
                 <SelectItem value="all">All Actionable</SelectItem>
                 {validStatuses.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                    <SelectItem key={status} value={status}>
+                        {status === 'Amended - Pending Review' ? 'Branch Responded' : status}
+                    </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -209,7 +211,7 @@ export default function ReviewQueuePage() {
                     <TableCell className="hidden md:table-cell">{submission.branch}</TableCell>
                     <TableCell>
                     <Badge variant={getBadgeVariant(submission.status)}>
-                        {submission.status}
+                        {submission.status === 'Amended - Pending Review' ? 'Branch Responded' : submission.status}
                     </Badge>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">

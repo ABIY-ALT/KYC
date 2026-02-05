@@ -15,6 +15,7 @@ export type Amendment = {
   reason: string;
   respondedAt?: string;
   responseComment?: string;
+  responseType?: string;
   documents: SubmittedDocument[];
 };
 
@@ -28,6 +29,7 @@ export type Submission = {
   documents: SubmittedDocument[];
   amendmentHistory?: Amendment[];
   amendmentReason?: string; // The most recent reason
+  amendmentRequestedAt?: string; // Timestamp for the current outstanding request
 };
 
 export const submissions: Submission[] = [
@@ -61,6 +63,7 @@ export const submissions: Submission[] = [
     status: 'Amendment', 
     officer: 'Diana Prince',
     amendmentReason: "The provided ID is blurry and unreadable. Please upload a high-resolution copy.",
+    amendmentRequestedAt: '2023-10-26T12:00:00Z',
     documents: [
       { id: 'doc-003-1', fileName: 'carol_id_blurry.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc3/800/1100', size: 345678, format: 'image/png', uploadedAt: '2023-10-25T14:00:00Z', version: 1 }
     ],
@@ -104,6 +107,8 @@ export const submissions: Submission[] = [
             requestedBy: 'Charlie Davis',
             reason: 'Signature does not match the one on the application form.',
             respondedAt: '2023-10-27T08:00:00Z',
+            responseType: 'Correction Provided',
+            responseComment: 'The customer has provided a newly signed document. Please review.',
             documents: [
                  { id: 'doc-006-1-v2', fileName: 'frank_license_new.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6-v2/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-27T08:00:00Z', version: 2 }
             ]

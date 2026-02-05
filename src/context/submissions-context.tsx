@@ -7,7 +7,7 @@ type SubmissionsContextType = {
   submissions: Submission[];
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], reason?: string) => void;
-  submitAmendment: (submissionId: string, amendedDocuments: SubmittedDocument[], branchComment?: string) => void;
+  submitAmendment: (submissionId: string, amendedDocuments: SubmittedDocument[], branchComment: string, responseType: string) => void;
 };
 
 const SubmissionsContext = createContext<SubmissionsContextType | undefined>(undefined);
@@ -23,9 +23,10 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     setSubmissions(currentSubmissions =>
       currentSubmissions.map(s => {
         if (s.id === submissionId) {
-            const updatedSubmission = { ...s, status: newStatus };
+            const updatedSubmission: Submission = { ...s, status: newStatus };
             if (newStatus === 'Amendment' && reason) {
                 updatedSubmission.amendmentReason = reason;
+                updatedSubmission.amendmentRequestedAt = new Date().toISOString();
             }
             return updatedSubmission;
         }
@@ -34,16 +35,17 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const submitAmendment = useCallback((submissionId: string, amendedDocuments: SubmittedDocument[], branchComment?: string) => {
+  const submitAmendment = useCallback((submissionId: string, amendedDocuments: SubmittedDocument[], branchComment: string, responseType: string) => {
       setSubmissions(currentSubmissions => 
         currentSubmissions.map(s => {
             if (s.id === submissionId) {
                 const newHistoryEntry = {
-                    requestedAt: new Date().toISOString(), // This would ideally be stored from the request
+                    requestedAt: s.amendmentRequestedAt || new Date().toISOString(),
                     requestedBy: s.officer,
                     reason: s.amendmentReason || "No reason specified",
                     respondedAt: new Date().toISOString(),
                     responseComment: branchComment,
+                    responseType: responseType,
                     documents: amendedDocuments
                 };
 
@@ -51,7 +53,8 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                     ...s,
                     status: 'Amended - Pending Review',
                     amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
-                    amendmentReason: undefined, // Clear the reason after submission
+                    amendmentReason: undefined,
+                    amendmentRequestedAt: undefined,
                 };
             }
             return s;
