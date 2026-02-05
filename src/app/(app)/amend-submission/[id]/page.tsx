@@ -57,6 +57,25 @@ export default function AmendSubmissionPage() {
     const [submission, setSubmission] = useState<Submission | undefined>();
     const [isLoading, setIsLoading] = useState(true);
 
+    const form = useForm<FormValues>({
+        resolver: zodResolver(amendmentSchema),
+        defaultValues: { responseType: undefined, comment: "", files: [] },
+    });
+    
+    // This effect ensures that any generated Object URLs are revoked when the component unmounts, preventing memory leaks.
+    useEffect(() => {
+        // This function will be called when the component unmounts
+        return () => {
+            const filesInForm = form.getValues('files');
+            filesInForm.forEach(fileWrapper => {
+                if (fileWrapper.file.dataUrl) {
+                    URL.revokeObjectURL(fileWrapper.file.dataUrl);
+                }
+            });
+        };
+    }, [form]);
+
+
     useEffect(() => {
         if (params.id) {
             const sub = submissions.find(s => s.id === params.id);
@@ -74,11 +93,6 @@ export default function AmendSubmissionPage() {
 
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    const form = useForm<FormValues>({
-        resolver: zodResolver(amendmentSchema),
-        defaultValues: { responseType: undefined, comment: "", files: [] },
-    });
-
     const { fields, append, remove, update } = useFieldArray({
         control: form.control,
         name: "files",
@@ -86,32 +100,34 @@ export default function AmendSubmissionPage() {
     });
 
     const handleFileUploaded = (originalDocId: string, uploadedFile: File) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
-            const originalDoc = submission?.documents.find(d => d.id === originalDocId);
+        // Use URL.createObjectURL for efficiency. It creates a temporary, short URL
+        // representing the file in the browser's memory, avoiding large Data URLs.
+        const objectUrl = URL.createObjectURL(uploadedFile);
 
-            const fileData = {
-                originalDocId: originalDocId,
-                file: {
-                    name: uploadedFile.name,
-                    type: uploadedFile.type,
-                    size: uploadedFile.size,
-                    dataUrl: dataUrl,
-                },
-                docType: originalDoc?.documentType || ''
-            };
-            
-            const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+        const originalDoc = submission?.documents.find(d => d.id === originalDocId);
 
-            if (existingIndex > -1) {
-                update(existingIndex, fileData);
-            } else {
-                append(fileData);
-            }
-            form.trigger("files");
+        const fileData = {
+            originalDocId: originalDocId,
+            file: {
+                name: uploadedFile.name,
+                type: uploadedFile.type,
+                size: uploadedFile.size,
+                dataUrl: objectUrl,
+            },
+            docType: originalDoc?.documentType || ''
         };
-        reader.readAsDataURL(uploadedFile);
+        
+        const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+
+        if (existingIndex > -1) {
+            // Before replacing, revoke the old URL to prevent memory leaks
+            const oldUrl = fields[existingIndex].file.dataUrl;
+            URL.revokeObjectURL(oldUrl);
+            update(existingIndex, fileData);
+        } else {
+            append(fileData);
+        }
+        form.trigger("files");
     };
     
     const handleAmendmentSubmit = (data: FormValues) => {
@@ -122,7 +138,7 @@ export default function AmendSubmissionPage() {
                 id: `doc-${Date.now()}-${index}`,
                 fileName: f.file.name,
                 documentType: f.docType,
-                url: f.file.dataUrl,
+                url: f.file.dataUrl, // Pass the Object URL
                 size: f.file.size,
                 format: f.file.type,
                 uploadedAt: new Date().toISOString(),
@@ -227,7 +243,14 @@ export default function AmendSubmissionPage() {
                                                         originalDoc={doc} 
                                                         onFileUploaded={(file) => handleFileUploaded(doc.id, file)}
                                                         uploadedFile={amendedFile}
-                                                        onFileRemoved={() => remove(fields.findIndex(f => f.originalDocId === doc.id))}
+                                                        onFileRemoved={() => {
+                                                            const fieldIndex = fields.findIndex(f => f.originalDocId === doc.id);
+                                                            if (fieldIndex > -1) {
+                                                                const urlToRevoke = fields[fieldIndex].file.dataUrl;
+                                                                URL.revokeObjectURL(urlToRevoke);
+                                                                remove(fieldIndex);
+                                                            }
+                                                        }}
                                                     />
                                                 </TableCell>
                                             </TableRow>
