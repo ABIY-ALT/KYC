@@ -154,7 +154,7 @@ export default function SystemSettingsPage() {
             </CardDescription>
         </CardHeader>
       </Card>
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs defaultValue="roles" className="w-full">
         <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="roles">Roles</TabsTrigger>
@@ -248,9 +248,9 @@ export default function SystemSettingsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Role</TableHead>
+                    <TableHead className="w-[150px]">Role</TableHead>
                     {allPermissions.map(p => <TableHead key={p.id} className="text-center hidden lg:table-cell">{p.label}</TableHead>)}
-                    <TableHead className="lg:hidden">Permissions</TableHead>
+                    <TableHead className="lg:hidden text-right">Permissions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -262,13 +262,14 @@ export default function SystemSettingsPage() {
                           <Checkbox 
                             checked={role.permissions.includes(p.id)}
                             onCheckedChange={(checked) => handlePermissionChange(role.id, p.id, !!checked)}
+                            aria-label={`Permission ${p.label} for role ${role.name}`}
                           />
                         </TableCell>
                       ))}
-                      <TableCell className="lg:hidden">
+                      <TableCell className="lg:hidden text-right">
                         <Select>
-                            <SelectTrigger>
-                                <SelectValue placeholder="View Permissions" />
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="View & Edit" />
                             </SelectTrigger>
                             <SelectContent>
                                 {allPermissions.map(p => (
@@ -278,7 +279,7 @@ export default function SystemSettingsPage() {
                                             checked={role.permissions.includes(p.id)}
                                             onCheckedChange={(checked) => handlePermissionChange(role.id, p.id, !!checked)}
                                         />
-                                        <Label htmlFor={`${role.id}-${p.id}-mobile`}>{p.label}</Label>
+                                        <Label htmlFor={`${role.id}-${p.id}-mobile`} className="font-normal flex-1">{p.label}</Label>
                                     </div>
                                 ))}
                             </SelectContent>
@@ -358,18 +359,25 @@ export default function SystemSettingsPage() {
                 </div>
                  <div className="rounded-md border">
                     <Table>
-                        <TableBody>
-                            {documentTypes.map(docType => (
-                                <TableRow key={docType}>
-                                    <TableCell>{docType}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveDocType(docType)}>
-                                            <Trash2 className="text-destructive" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Document Type</TableHead>
+                          <TableHead className="text-right w-[100px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {documentTypes.map(docType => (
+                              <TableRow key={docType}>
+                                  <TableCell className="font-medium">{docType}</TableCell>
+                                  <TableCell className="text-right">
+                                      <Button variant="ghost" size="icon" onClick={() => handleRemoveDocType(docType)}>
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                          <span className="sr-only">Remove {docType}</span>
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
                     </Table>
                  </div>
             </CardContent>
