@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -61,24 +62,24 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
         toast({ variant: "destructive", title: "File upload failed", description: rejected[0].errors[0].message });
       } else if (accepted.length > 0) {
         const file = accepted[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const url = e.target?.result as string;
-            form.setValue('file', {
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                url: url,
-            });
-            form.trigger('file');
-        };
-        reader.readAsDataURL(file);
+        const url = URL.createObjectURL(file);
+        form.setValue('file', {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: url,
+        });
+        form.trigger('file');
       }
     },
     accept: { 'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf'] }
   });
 
   const removeFile = () => {
+      const currentFile = form.getValues('file');
+      if (currentFile) {
+        URL.revokeObjectURL(currentFile.url);
+      }
       form.setValue('file', undefined);
       form.trigger('file');
   }
@@ -111,7 +112,12 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        removeFile(); // Clean up blob URL on close
+      }
+      onOpenChange(open);
+    }}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Amendment Request Details</DialogTitle>

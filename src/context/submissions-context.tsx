@@ -18,7 +18,7 @@ type SubmissionsContextType = {
   submissions: Submission[];
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
-  resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => void;
+  resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: { name: string; size: number; type: string; url: string }) => void;
   submitAmendment: (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string) => Promise<void>;
 };
 
@@ -54,7 +54,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     );
   }, []);
   
-  const resolveAmendmentRequest = useCallback((submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => {
+  const resolveAmendmentRequest = useCallback((submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: { name: string; size: number; type: string; url: string }) => {
       setSubmissions(currentSubmissions => 
         currentSubmissions.map(s => {
             if (s.id === submissionId) {

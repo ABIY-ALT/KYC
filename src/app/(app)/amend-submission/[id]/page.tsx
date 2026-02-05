@@ -62,7 +62,7 @@ export default function AmendSubmissionPage() {
         keyName: 'formId',
     });
     
-    const amendedFiles = useWatch({ control: form.control, name: 'amendedFiles' });
+    const amendedFiles = useWatch({ control: form.control, name: "amendedFiles" });
 
     useEffect(() => {
         if (params.id) {
@@ -74,9 +74,9 @@ export default function AmendSubmissionPage() {
 
     // Memory cleanup for object URLs
     useEffect(() => {
+        const currentFiles = form.getValues('amendedFiles');
         return () => {
-            const files = form.getValues('amendedFiles');
-            files.forEach(f => URL.revokeObjectURL(f.previewUrl));
+            currentFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
         }
     }, [form]);
 
