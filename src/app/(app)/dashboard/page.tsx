@@ -15,17 +15,12 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import { kpiData, submissionTrendData, type User as UserData } from "@/lib/data";
+import { kpiData, type User as UserData } from "@/lib/data";
 import { useSubmissions } from "@/context/submissions-context";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import PerformanceChart from "@/components/performance-chart";
 
 
 export default function DashboardPage() {
@@ -64,39 +59,9 @@ export default function DashboardPage() {
                     </Card>
                 ))}
             </div>
+            <PerformanceChart />
             <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
                 <Card className="xl:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Submission Trends</CardTitle>
-                        <CardDescription>Monthly submission volume for the last 6 months.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={{ submissions: { label: 'Submissions', color: 'hsl(var(--primary))' } }} className="h-[300px] w-full">
-                            <BarChart accessibilityLayer data={submissionTrendData}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis
-                                    dataKey="date"
-                                    tickLine={false}
-                                    tickMargin={10}
-                                    axisLine={false}
-                                    stroke="hsl(var(--muted-foreground))"
-                                />
-                                <YAxis
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tickMargin={10}
-                                    stroke="hsl(var(--muted-foreground))"
-                                />
-                                <ChartTooltip
-                                    cursor={false}
-                                    content={<ChartTooltipContent indicator="dot" />}
-                                />
-                                <Bar dataKey="submissions" fill="var(--color-submissions)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-                <Card>
                     <CardHeader>
                         <CardTitle>Recent Submissions</CardTitle>
                         <CardDescription>
