@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -87,14 +88,14 @@ export default function BranchPerformancePage() {
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                 {kpis.map((kpi, index) => (
-                    <Card key={index}>
+                    <Card key={index} className="hover-lift">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{kpi.value}</div>
+                            <div className="text-2xl font-bold animate-pulse-glow">{kpi.value}</div>
                             <p className="text-xs text-muted-foreground">{kpi.unit}</p>
                         </CardContent>
                     </Card>
@@ -103,7 +104,7 @@ export default function BranchPerformancePage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Branch Breakdown</CardTitle>
+                    <CardTitle className="gradient-text">Branch Breakdown</CardTitle>
                     <CardDescription>
                         Detailed performance metrics for each branch. Use the filters below to refine the list.
                     </CardDescription>
@@ -137,8 +138,8 @@ export default function BranchPerformancePage() {
                         <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
                     </div>
 
-                    <Table>
-                        <TableHeader>
+                    <Table containerClassName="custom-scrollbar">
+                        <TableHeader className="sticky top-0 bg-card z-10">
                             <TableRow>
                                 <TableHead>Branch</TableHead>
                                 <TableHead className="text-right">Volume</TableHead>
@@ -151,7 +152,7 @@ export default function BranchPerformancePage() {
                         <TableBody>
                             {filteredData.length > 0 ? (
                                 filteredData.map((branch) => (
-                                    <TableRow key={branch.id}>
+                                    <TableRow key={branch.id} className="hover-lift">
                                         <TableCell className="font-medium">{branch.name}</TableCell>
                                         <TableCell className="text-right">{branch.totalSubmissions.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">{branch.approvalRate.toFixed(1)}%</TableCell>
@@ -159,7 +160,7 @@ export default function BranchPerformancePage() {
                                         <TableCell className="text-right">{branch.avgTurnaroundTime.toFixed(1)}d</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Progress value={branch.slaCompliance} aria-label={`${branch.slaCompliance}% SLA Compliance`} />
+                                                <Progress value={branch.slaCompliance} aria-label={`${branch.slaCompliance}% SLA Compliance`} className="animate-shimmer" />
                                                 <span className="text-xs text-muted-foreground">{branch.slaCompliance}%</span>
                                             </div>
                                         </TableCell>
