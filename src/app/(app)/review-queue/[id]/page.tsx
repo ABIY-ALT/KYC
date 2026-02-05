@@ -99,7 +99,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const { toast } = useToast();
     
     // Local state for amendment mode
-    const [submissionState, setSubmissionState] = useState(submissions.find(s => s.id === params.id));
+    const [submissionState, setSubmissionState] = useState(() => submissions.find(s => s.id === params.id));
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const form = useForm<FormValues>({
@@ -191,7 +191,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
     // Branch user responding to an amendment request
     if (isBranchUser && (submissionState.status === 'Amendment' || submissionState.status === 'Amended - Pending Review')) {
-        const requestDate = submissionState.amendmentRequestedAt ? format(new Date(submissionState.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
+        const requestDate = submissionState.amendmentRequestedAt ? format(new Date(submissionState.amendmentRequestedAt), 'dd/MM/YYYY') : 'a recent date';
         const placeholderTemplate = `All requested amendments have been completed. The corrected document(s) have been re-uploaded as per your comment dated ${requestDate}. Please proceed with review.`;
 
         // POST-SUBMISSION VIEW
@@ -227,7 +227,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                 <div className="space-y-8">
                     <Card className="hover-lift">
                         <CardHeader>
-                            <CardTitle>Amendment Request Summary</CardTitle>
+                            <CardTitle>Step 1: Review Amendment Request</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <Label className="font-semibold text-muted-foreground">KYC Officer Comment</Label>
@@ -237,7 +237,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
                     <Card>
                          <CardHeader>
-                            <CardTitle>Required Documents</CardTitle>
+                            <CardTitle>Step 2: Upload Corrected Documents & Respond</CardTitle>
                             <CardDescription>
                                 Replace or re-upload the documents that need correction.
                             </CardDescription>
@@ -248,9 +248,8 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                     <TableRow>
                                         <TableHead className="w-12">Status</TableHead>
                                         <TableHead>Document Name</TableHead>
-                                        <TableHead className="hidden md:table-cell">Issue Description</TableHead>
                                         <TableHead className="text-center">Existing File</TableHead>
-                                        <TableHead className="w-[300px]">Action</TableHead>
+                                        <TableHead className="w-[300px]">Action: Replace File</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -264,7 +263,6 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                                     {isAmended ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
                                                 </TableCell>
                                                 <TableCell className="font-medium">{doc.documentType}</TableCell>
-                                                <TableCell className="text-muted-foreground hidden md:table-cell">{submissionState.amendmentReason}</TableCell>
                                                 <TableCell className="text-center">
                                                     <a href={doc.url} target="_blank" rel="noopener noreferrer">
                                                         <Button variant="ghost" size="sm"><Eye className="mr-2"/> View</Button>
@@ -293,7 +291,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Branch Amendment Response</CardTitle>
+                            <CardTitle>Step 3: Provide Response</CardTitle>
                         </CardHeader>
                         <Form {...form}>
                         <form className="space-y-6 p-6 pt-0">
