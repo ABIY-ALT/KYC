@@ -157,7 +157,7 @@ export default function AmendSubmissionPage() {
                 id: `doc-${Date.now()}-${index}`,
                 fileName: f.file.name,
                 documentType: f.documentType,
-                url: f.file.url,
+                url: `https://picsum.photos/seed/newdoc${Date.now()}${index}/800/1100`,
                 size: f.file.size,
                 format: f.file.type,
                 uploadedAt: new Date().toISOString(),
