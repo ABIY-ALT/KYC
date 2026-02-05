@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
 import { type Submission, type User as UserData } from "@/lib/data";
-import { MoreHorizontal, AlertTriangle, FileClock, CheckCircle2 } from "lucide-react";
+import { MoreHorizontal, RefreshCcw, CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,7 +77,7 @@ export default function MySubmissionsPage() {
   const getAmendmentStatusIcon = (status: Submission['status']) => {
     switch (status) {
         case 'Amendment':
-            return <AlertTriangle className="h-5 w-5 text-amber-500" title="Amendment Required" />;
+            return <RefreshCcw className="h-5 w-5 text-red-500" title="Re-Upload Required" />;
         case 'Amended - Pending Review':
             return <CheckCircle2 className="h-5 w-5 text-green-500" title="Responded" />;
         default:
@@ -138,7 +138,7 @@ export default function MySubmissionsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/review-queue/${submission.id}`); }}>
                         View Details
                       </DropdownMenuItem>
                     </DropdownMenuContent>
