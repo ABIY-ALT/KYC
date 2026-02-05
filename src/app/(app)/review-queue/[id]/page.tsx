@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter, notFound } from 'next/navigation';
 import Image from "next/image";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -35,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const RESPONSE_TYPES = [
@@ -99,7 +100,15 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const { toast } = useToast();
     
     // Local state for amendment mode
-    const [submissionState, setSubmissionState] = useState(() => submissions.find(s => s.id === params.id));
+    const [submissionState, setSubmissionState] = useState<Submission | undefined>();
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const submission = submissions.find(s => s.id === params.id);
+        setSubmissionState(submission);
+        setIsLoading(false);
+    }, [params.id, submissions]);
+
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const form = useForm<FormValues>({
@@ -131,11 +140,8 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         form.trigger("files"); // re-validate files array
     };
     
-    if (!submissionState) {
-        notFound();
-    }
-    
     const handleStatusChange = (newStatus: Submission['status'], reason?: string) => {
+        if (!submissionState) return;
         updateSubmissionStatus(submissionState.id, newStatus, reason);
         setSubmissionState(prev => prev ? { ...prev, status: newStatus } : undefined);
         toast({
@@ -149,6 +155,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     };
 
     const handleAmendmentSubmit = (data: FormValues) => {
+        if (!submissionState) return;
         const newDocuments: SubmittedDocument[] = data.files.map((f, index) => {
              const originalDoc = submissionState.documents.find(d => d.id === f.originalDocId);
              return {
@@ -176,6 +183,27 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         setIsPreviewOpen(false);
     };
 
+    if (isLoading) {
+        return (
+            <div>
+                <Skeleton className="h-10 w-24 mb-6" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                    <div className="lg:col-span-2 space-y-6">
+                        <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                    </div>
+                    <div className="lg:col-span-1 flex flex-col gap-6 sticky top-24">
+                        <Skeleton className="h-96 w-full" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
+    if (!submissionState) {
+        notFound();
+    }
+    
     const handleApprove = () => handleStatusChange('Approved');
     const handleEscalate = () => handleStatusChange('Escalated');
 
