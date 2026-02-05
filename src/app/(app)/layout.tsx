@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -20,15 +21,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { data: userData, isLoading: isProfileLoading } = useDoc<UserData>(userDocRef);
 
   useEffect(() => {
+    // If auth state is determined and there's no user, redirect to login.
     if (!isUserLoading && !authUser) {
       router.replace('/login');
     }
   }, [authUser, isUserLoading, router]);
 
-  // Show loading skeleton while either auth state or profile data is being determined.
-  const isLoading = isUserLoading || isProfileLoading;
-
-  if (isLoading || !authUser) {
+  // First, handle the primary authentication loading state.
+  // If we are checking for a user, show a full-page skeleton.
+  if (isUserLoading) {
     return (
       <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
         <div className="hidden border-r bg-card lg:block">
@@ -61,9 +62,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // If user is authenticated but no profile data is found, create a fallback object.
-  // This prevents crashes if the Firestore doc doesn't exist yet (e.g. after signup).
-  const displayUser = userData ?? (authUser ? { 
+  // After the initial auth check, if there is no user, we are about to redirect.
+  // Return null to avoid a flash of an empty layout.
+  if (!authUser) {
+    return null;
+  }
+  
+  // At this point, we have an authenticated user (`authUser`).
+  // We can render the main layout, creating a fallback for the user profile.
+  const displayUser = userData ?? { 
     id: authUser.uid,
     email: authUser.email || 'new.user@kycflow.com',
     firstName: 'New',
@@ -73,7 +80,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     branch: 'Unassigned',
     district: 'Unassigned',
     status: 'Active',
-  } : null);
+  };
 
   return (
     <SubmissionsProvider>
@@ -82,7 +89,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex flex-col">
           <AppHeader />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 bg-background">
-            {children}
+            {/* Show a skeleton for the main content while the detailed profile loads */}
+            {isProfileLoading ? <Skeleton className="h-64 w-full" /> : children}
           </main>
         </div>
       </div>
