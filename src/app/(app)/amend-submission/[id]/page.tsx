@@ -20,22 +20,20 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineUploader } from "@/components/amendment-uploader";
 
-// Schema for a single file object being managed by the form
-const amendedFileObjectSchema = z.object({
+const fileObjectSchema = z.object({
   name: z.string(),
   type: z.string(),
   size: z.number(),
-  url: z.string(), // This will be an Object URL for local preview
+  url: z.string(), // This will be a Data URL
 });
 
 const amendedFileSchema = z.object({
     amendmentRequestId: z.string(),
     documentType: z.string(),
     originalDocumentId: z.string().optional(),
-    file: amendedFileObjectSchema,
+    file: fileObjectSchema,
 });
 
-// Main schema for the amendment submission form
 const amendmentResponseSchema = z.object({
   responseComment: z.string().min(10, "A response comment of at least 10 characters is required."),
   amendedFiles: z.array(amendedFileSchema),
@@ -88,19 +86,6 @@ export default function AmendSubmissionPage() {
         }
     }, [submissionStatus, router]);
 
-    // Clean up Object URLs on unmount
-    useEffect(() => {
-        return () => {
-            const files = form.getValues('amendedFiles');
-            files.forEach(f => {
-                if (f.file.url.startsWith('blob:')) {
-                    URL.revokeObjectURL(f.file.url);
-                }
-            });
-        };
-    }, [form]);
-
-
     const handleFileUploaded = useCallback((request: AmendmentRequest, uploadedFile: File) => {
         if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
             toast({
@@ -111,48 +96,43 @@ export default function AmendSubmissionPage() {
             return;
         }
         
-        // Use URL.createObjectURL for memory efficiency instead of FileReader
-        const objectUrl = URL.createObjectURL(uploadedFile);
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
 
-        const fileData = {
-            amendmentRequestId: request.id,
-            documentType: request.targetDocumentType,
-            originalDocumentId: request.targetDocumentId,
-            file: {
-                name: uploadedFile.name,
-                type: uploadedFile.type,
-                size: uploadedFile.size,
-                url: objectUrl,
-            },
-        };
+            const fileData = {
+                amendmentRequestId: request.id,
+                documentType: request.targetDocumentType,
+                originalDocumentId: request.targetDocumentId,
+                file: {
+                    name: uploadedFile.name,
+                    type: uploadedFile.type,
+                    size: uploadedFile.size,
+                    url: dataUrl,
+                },
+            };
 
-        const currentFiles = form.getValues("amendedFiles");
-        const existingIndex = currentFiles.findIndex(
-            f => f.amendmentRequestId === request.id
-        );
+            const currentFiles = form.getValues("amendedFiles");
+            const existingIndex = currentFiles.findIndex(
+                f => f.amendmentRequestId === request.id
+            );
 
-        if (existingIndex >= 0) {
-            const oldUrl = form.getValues(`amendedFiles.${existingIndex}.file.url`);
-            if (oldUrl.startsWith('blob:')) {
-                URL.revokeObjectURL(oldUrl);
+            if (existingIndex >= 0) {
+                update(existingIndex, fileData);
+            } else {
+                append(fileData);
             }
-            update(existingIndex, fileData);
-        } else {
-            append(fileData);
-        }
-        form.trigger("amendedFiles");
+            form.trigger("amendedFiles");
+        };
+        reader.readAsDataURL(uploadedFile);
     }, [append, form, toast, update]);
 
     const handleFileRemoved = useCallback((amendmentRequestId: string) => {
         const fieldIndex = fields.findIndex(f => f.amendmentRequestId === amendmentRequestId);
         if (fieldIndex > -1) {
-            const urlToRemove = form.getValues(`amendedFiles.${fieldIndex}.file.url`);
-            if (urlToRemove.startsWith('blob:')) {
-                URL.revokeObjectURL(urlToRemove);
-            }
             remove(fieldIndex);
         }
-    }, [fields, remove, form]);
+    }, [fields, remove]);
     
     const handleAmendmentSubmit = async (data: FormValues) => {
       if (!submission || submissionStatus === 'submitting') return;
