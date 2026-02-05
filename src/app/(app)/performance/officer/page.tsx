@@ -75,14 +75,14 @@ export default function OfficerPerformancePage() {
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                 {kpis.map((kpi, index) => (
-                    <Card key={index}>
+                    <Card key={index} className="hover-lift">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{kpi.value}</div>
+                            <div className="text-2xl font-bold animate-pulse-glow">{kpi.value}</div>
                         </CardContent>
                     </Card>
                 ))}
@@ -90,7 +90,7 @@ export default function OfficerPerformancePage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Officer Performance Breakdown</CardTitle>
+                    <CardTitle className="gradient-text">Officer Performance Breakdown</CardTitle>
                     <CardDescription>
                        Visual comparison and detailed metrics for each KYC officer.
                     </CardDescription>
@@ -139,8 +139,8 @@ export default function OfficerPerformancePage() {
                         <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
                     </div>
 
-                    <Table>
-                        <TableHeader>
+                    <Table containerClassName="custom-scrollbar h-[400px]">
+                        <TableHeader className="sticky top-0 bg-card z-10">
                             <TableRow>
                                 <TableHead>Officer</TableHead>
                                 <TableHead className="text-right">Cases Reviewed</TableHead>
@@ -152,10 +152,10 @@ export default function OfficerPerformancePage() {
                         <TableBody>
                              {filteredData.length > 0 ? (
                                 filteredData.map((officer, index) => (
-                                    <TableRow key={officer.id}>
+                                    <TableRow key={officer.id} className="hover-lift">
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-9 w-9">
+                                                <Avatar className="h-9 w-9 hover:animate-float">
                                                     <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={officer.name} data-ai-hint="person portrait" />
                                                     <AvatarFallback>{officer.name.slice(0, 2)}</AvatarFallback>
                                                 </Avatar>
@@ -168,13 +168,13 @@ export default function OfficerPerformancePage() {
                                         <TableCell className="text-right">{officer.casesReviewed}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Progress value={officer.approvalRate} aria-label={`${officer.approvalRate}% approval rate`} />
+                                                <Progress value={officer.approvalRate} aria-label={`${officer.approvalRate}% approval rate`} className="animate-shimmer" />
                                                 <span className="text-xs text-muted-foreground">{officer.approvalRate}%</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
-                                                <Progress value={officer.amendmentRate} aria-label={`${officer.amendmentRate}% amendment rate`} />
+                                                <Progress value={officer.amendmentRate} aria-label={`${officer.amendmentRate}% amendment rate`} className="animate-shimmer" />
                                                 <span className="text-xs text-muted-foreground">{officer.amendmentRate}%</span>
                                             </div>
                                         </TableCell>
