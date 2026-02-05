@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { motion } from "framer-motion";
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,67 +127,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-      <Card className="w-full max-w-sm mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Logo />
-          </div>
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Sign in to your KYC Flow account.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-4 text-left">
-              <Info className="h-4 w-4" />
-              <AlertTitle>Demo Admin Credentials</AlertTitle>
-              <AlertDescription>
-                <p>Use the following to sign in as an administrator:</p>
-                <p className="font-semibold">Email: {ADMIN_EMAIL}</p>
-                <p className="font-semibold">Password: {ADMIN_PASSWORD}</p>
-              </AlertDescription>
-          </Alert>
+    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bg-card p-8 rounded-xl shadow-lg w-full max-w-md"
+      >
+        <div className="flex justify-center mb-4">
+          <Logo />
+        </div>
+        <h1 className="text-2xl font-semibold text-center mb-2">
+          Welcome Back
+        </h1>
+        <p className="text-center text-muted-foreground mb-6">Sign in to your KYC Flow account.</p>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="john.doe@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Signing In...' : 'Sign In'}
+
+        <Alert className="mb-6 text-left">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Demo Admin Credentials</AlertTitle>
+            <AlertDescription>
+              <p>Use the following to sign in as an administrator:</p>
+              <p className="font-semibold">Email: {ADMIN_EMAIL}</p>
+              <p className="font-semibold">Password: {ADMIN_PASSWORD}</p>
+            </AlertDescription>
+        </Alert>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input type="email" placeholder="Username" {...field} className="p-3 focus:ring-2 focus:ring-primary outline-none" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input type="password" placeholder="Password" {...field} className="p-3 focus:ring-2 focus:ring-primary outline-none" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <motion.div
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <Button type="submit" className="w-full py-3 font-medium text-base" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Logging In...' : 'Login'}
               </Button>
-            </form>
-          </Form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-semibold text-primary hover:underline">
-              Sign Up
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+            </motion.div>
+          </form>
+        </Form>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Don't have an account?{' '}
+          <Link href="/signup" className="font-semibold text-primary hover:underline">
+            Sign Up
+          </Link>
+        </p>
+      </motion.div>
     </div>
   );
 }
