@@ -39,17 +39,29 @@ import type { Submission, AmendmentRequest } from "@/lib/data";
 const amendmentRequestSchema = z.object({
   type: z.enum(['REPLACE_EXISTING', 'ADD_NEW']),
   targetDocumentId: z.string().optional(),
-  targetDocumentType: z.string().min(1, "Document type is required"),
+  targetDocumentType: z.string().optional(),
   comment: z.string().min(10, "Comment must be at least 10 characters long."),
-}).refine(data => {
+}).superRefine((data, ctx) => {
     if (data.type === 'REPLACE_EXISTING') {
-        return !!data.targetDocumentId;
+        if (!data.targetDocumentId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "You must select an existing document to replace.",
+                path: ["targetDocumentId"],
+            });
+        }
     }
-    return true;
-}, {
-    message: "You must select an existing document to replace.",
-    path: ["targetDocumentId"],
+    if (data.type === 'ADD_NEW') {
+        if (!data.targetDocumentType || data.targetDocumentType.trim().length < 1) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Document type is required when adding a new document.",
+                path: ["targetDocumentType"],
+            });
+        }
+    }
 });
+
 
 type AmendmentRequestValues = z.infer<typeof amendmentRequestSchema>;
 
@@ -69,20 +81,36 @@ export function AmendmentDialog({ onStatusChange, submission, trigger }: Amendme
         resolver: zodResolver(amendmentRequestSchema),
         defaultValues: {
             type: 'REPLACE_EXISTING',
+            targetDocumentId: undefined,
+            targetDocumentType: '',
             comment: "",
-            targetDocumentType: "", // Set empty default for the new required field
         },
     });
 
     const amendmentType = form.watch('type');
 
     const handleSendRequest = (values: AmendmentRequestValues) => {
-        let requestPayload: NewAmendmentRequest = { ...values };
+        let requestPayload: NewAmendmentRequest;
 
-        if (values.type === 'REPLACE_EXISTING' && values.targetDocumentId) {
+        if (values.type === 'REPLACE_EXISTING') {
+            if (!values.targetDocumentId) return; // Should be caught by validation
             const selectedDoc = submission.documents.find(d => d.id === values.targetDocumentId);
-            if(selectedDoc) {
-                requestPayload.targetDocumentType = selectedDoc.documentType;
+            if (!selectedDoc) {
+                 toast({ variant: 'destructive', title: 'Error', description: 'Could not find the selected document to replace.' });
+                return;
+            }
+            requestPayload = {
+                type: 'REPLACE_EXISTING',
+                targetDocumentId: values.targetDocumentId,
+                targetDocumentType: selectedDoc.documentType,
+                comment: values.comment,
+            }
+        } else { // ADD_NEW
+            if (!values.targetDocumentType) return; // Also caught by validation
+            requestPayload = {
+                type: 'ADD_NEW',
+                targetDocumentType: values.targetDocumentType,
+                comment: values.comment,
             }
         }
         
