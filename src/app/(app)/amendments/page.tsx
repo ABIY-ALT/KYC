@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Card,
@@ -19,7 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,21 +29,88 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { type Submission } from '@/lib/data';
 
 export default function AmendmentsPage() {
   const router = useRouter();
   const { submissions } = useSubmissions();
-  const amendmentSubmissions = submissions.filter(s => s.status === 'Amendment');
+  
+  const [filters, setFilters] = useState({
+    branch: 'all',
+    searchTerm: '',
+  });
+  
+  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
+
+  const uniqueBranches = [...new Set(submissions.map(s => s.branch))];
+
+  useEffect(() => {
+    // Start with submissions that require amendment
+    let data = submissions.filter(s => s.status === 'Amendment');
+
+    if (filters.branch !== 'all') {
+        data = data.filter(s => s.branch === filters.branch);
+    }
+    
+    if (filters.searchTerm) {
+        const term = filters.searchTerm.toLowerCase();
+        data = data.filter(s => 
+            s.customerName.toLowerCase().includes(term) ||
+            s.id.toLowerCase().includes(term)
+        );
+    }
+
+    setFilteredSubmissions(data);
+  }, [filters, submissions]);
+
+  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Amendment Management</CardTitle>
         <CardDescription>
-          Review and process submissions that require amendments.
+          Review and process submissions that require amendments. Use filters to narrow down the list.
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-col md:flex-row items-end gap-4 mb-6 pb-6 border-b">
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="search-filter">Search by Customer or ID</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search-filter"
+                type="search"
+                placeholder="e.g., Carol White or SUB003"
+                className="pl-8"
+                value={filters.searchTerm}
+                onChange={e => handleFilterChange('searchTerm', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="branch-filter">Filter by Branch</Label>
+            <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)}>
+              <SelectTrigger id="branch-filter"><SelectValue placeholder="Select Branch" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                {uniqueBranches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -56,8 +124,8 @@ export default function AmendmentsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {amendmentSubmissions.length > 0 ? (
-                amendmentSubmissions.map((submission) => (
+            {filteredSubmissions.length > 0 ? (
+                filteredSubmissions.map((submission) => (
                 <TableRow key={submission.id}>
                     <TableCell>
                     <div className="font-medium">{submission.customerName}</div>
@@ -94,7 +162,7 @@ export default function AmendmentsPage() {
             ) : (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                        No submissions require amendment.
+                        No submissions require amendment for the selected filters.
                     </TableCell>
                 </TableRow>
             )}
