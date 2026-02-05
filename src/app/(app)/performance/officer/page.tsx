@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,7 +25,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
+const chartConfig = {
+  casesReviewed: {
+    label: "Cases Reviewed",
+    color: "hsl(var(--primary))",
+  },
+};
 
 export default function OfficerPerformancePage() {
     const userAvatars = PlaceHolderImages.filter(img => img.id.includes('user-avatar'));
@@ -77,11 +90,36 @@ export default function OfficerPerformancePage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Individual Officer Performance</CardTitle>
+                    <CardTitle>Officer Performance Breakdown</CardTitle>
                     <CardDescription>
-                        Detailed performance metrics for each KYC officer. Use the filter to refine the list.
+                       Visual comparison and detailed metrics for each KYC officer.
                     </CardDescription>
                 </CardHeader>
+                <CardContent className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="w-full h-full">
+                        <BarChart accessibilityLayer data={filteredData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="name"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                            stroke="hsl(var(--muted-foreground))"
+                        />
+                        <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                            stroke="hsl(var(--muted-foreground))"
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent indicator="dot" />}
+                        />
+                        <Bar dataKey="casesReviewed" fill="var(--color-casesReviewed)" radius={4} />
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
                 <CardContent>
                     <div className="flex items-end gap-4 mb-6 pb-6 border-b">
                         <div className="grid gap-2 w-full md:max-w-xs">
