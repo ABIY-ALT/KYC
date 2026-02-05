@@ -17,18 +17,10 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { officerPerformanceData } from "@/lib/data";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -49,34 +41,21 @@ export default function OfficerPerformancePage() {
     ];
     
     const [filteredData, setFilteredData] = useState(officerPerformanceData);
-    const [filters, setFilters] = useState({
-        name: '',
-        team: 'all',
-    });
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const uniqueTeams = [...new Set(officerPerformanceData.map(item => item.team))];
-
-    const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
-        setFilters(prev => ({ ...prev, [filterName]: value }));
-    };
-    
     const handleResetFilters = () => {
-        setFilters({ name: '', team: 'all' });
+        setSearchTerm('');
     }
 
     useEffect(() => {
         let data = officerPerformanceData;
-
-        if (filters.team !== 'all') {
-            data = data.filter(officer => officer.team === filters.team);
-        }
         
-        if (filters.name) {
-            data = data.filter(officer => officer.name.toLowerCase().includes(filters.name.toLowerCase()));
+        if (searchTerm) {
+            data = data.filter(officer => officer.name.toLowerCase().includes(searchTerm.toLowerCase()));
         }
 
         setFilteredData(data);
-    }, [filters]);
+    }, [searchTerm]);
 
 
     return (
@@ -100,11 +79,11 @@ export default function OfficerPerformancePage() {
                 <CardHeader>
                     <CardTitle>Individual Officer Performance</CardTitle>
                     <CardDescription>
-                        Detailed performance metrics for each KYC officer. Use the filters to refine the list.
+                        Detailed performance metrics for each KYC officer. Use the filter to refine the list.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col md:flex-row items-end gap-4 mb-6 pb-6 border-b">
+                    <div className="flex items-end gap-4 mb-6 pb-6 border-b">
                         <div className="grid gap-2 w-full md:max-w-xs">
                             <Label htmlFor="search-filter">Search by Officer Name</Label>
                             <div className="relative">
@@ -114,20 +93,10 @@ export default function OfficerPerformancePage() {
                                     type="search"
                                     placeholder="e.g., Charlie Davis"
                                     className="pl-8"
-                                    value={filters.name}
-                                    onChange={e => handleFilterChange('name', e.target.value)}
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                        </div>
-                        <div className="grid gap-2 w-full md:max-w-xs">
-                            <Label htmlFor="team-filter">Filter by Team</Label>
-                            <Select value={filters.team} onValueChange={v => handleFilterChange('team', v)}>
-                                <SelectTrigger id="team-filter"><SelectValue placeholder="Select Team" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Teams</SelectItem>
-                                    {uniqueTeams.map(team => <SelectItem key={team} value={team}>{team}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
                         </div>
                         <Button variant="outline" onClick={handleResetFilters}>Reset</Button>
                     </div>
@@ -136,7 +105,6 @@ export default function OfficerPerformancePage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Officer</TableHead>
-                                <TableHead>Team</TableHead>
                                 <TableHead className="text-right">Cases Reviewed</TableHead>
                                 <TableHead>Approval Rate</TableHead>
                                 <TableHead>Amendment Rate</TableHead>
@@ -159,9 +127,6 @@ export default function OfficerPerformancePage() {
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{officer.team}</Badge>
-                                        </TableCell>
                                         <TableCell className="text-right">{officer.casesReviewed}</TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
@@ -180,7 +145,7 @@ export default function OfficerPerformancePage() {
                                 ))
                              ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-24 text-center">
+                                    <TableCell colSpan={5} className="h-24 text-center">
                                         No officers found for the selected filters.
                                     </TableCell>
                                 </TableRow>
