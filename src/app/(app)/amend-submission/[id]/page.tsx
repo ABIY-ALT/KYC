@@ -28,12 +28,7 @@ const amendedFileSchema = z.object({
     amendmentRequestId: z.string(),
     documentType: z.string(),
     originalDocumentId: z.string().optional(),
-    file: z.object({
-        name: z.string(),
-        type: z.string(),
-        size: z.number(),
-        url: z.string(),
-    }),
+    file: z.instanceof(File),
 });
 
 // Main schema for the amendment submission form
@@ -96,38 +91,25 @@ export default function AmendSubmissionPage() {
             return;
         }
         
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-
-            const fileData = {
-                amendmentRequestId: request.id,
-                documentType: request.targetDocumentType,
-                originalDocumentId: request.targetDocumentId,
-                file: {
-                    name: uploadedFile.name,
-                    type: uploadedFile.type,
-                    size: uploadedFile.size,
-                    url: dataUrl,
-                },
-            };
-
-            const currentFiles = form.getValues("amendedFiles");
-            const existingIndex = currentFiles.findIndex(
-                f => f.amendmentRequestId === request.id
-            );
-
-            if (existingIndex >= 0) {
-                update(existingIndex, fileData);
-            } else {
-                append(fileData);
-            }
-
-            form.trigger("amendedFiles");
+        const fileData = {
+            amendmentRequestId: request.id,
+            documentType: request.targetDocumentType,
+            originalDocumentId: request.targetDocumentId,
+            file: uploadedFile,
         };
 
-        reader.readAsDataURL(uploadedFile);
+        const currentFiles = form.getValues("amendedFiles");
+        const existingIndex = currentFiles.findIndex(
+            f => f.amendmentRequestId === request.id
+        );
+
+        if (existingIndex >= 0) {
+            update(existingIndex, fileData);
+        } else {
+            append(fileData);
+        }
+
+        form.trigger("amendedFiles");
     };
 
     const handleFileRemoved = (amendmentRequestId: string) => {
@@ -138,7 +120,7 @@ export default function AmendSubmissionPage() {
     };
     
     const handleAmendmentSubmit = async (data: FormValues) => {
-        if (!submission) return;
+        if (!submission || !submission.pendingAmendments) return;
         
         try {
             form.setValue("submitting", true);

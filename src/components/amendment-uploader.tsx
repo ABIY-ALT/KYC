@@ -4,7 +4,7 @@
 type InlineUploaderProps = {
   mode: 'REPLACE' | 'ADD';
   documentType: string;
-  uploadedFile?: any;
+  uploadedFile?: File;
   onFileUploaded: (file: File) => void;
   onFileRemoved: () => void;
 };
