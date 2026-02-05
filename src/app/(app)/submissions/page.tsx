@@ -18,11 +18,19 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
 import { type Submission, type User as UserData } from "@/lib/data";
-import { RefreshCcw } from "lucide-react";
+import { MoreHorizontal, RefreshCcw, FileText } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -112,30 +120,33 @@ export default function MySubmissionsPage() {
                       {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
                     </TableCell>
                     <TableCell className="text-right">
-                        {submission.status === 'Amendment' ? (
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setModalSubmission(submission);
-                                }}
-                            >
-                                <RefreshCcw className="mr-2 h-4 w-4" />
-                                Re-Upload
-                            </Button>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    router.push(`/review-queue/${submission.id}`);
-                                }}
-                            >
-                                View Details
-                            </Button>
-                        )}
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
+                              </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  <span>View Details</span>
+                              </DropdownMenuItem>
+                              {submission.status === 'Amendment' && (
+                                  <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => {
+                                          setModalSubmission(submission);
+                                      }}
+                                  >
+                                      <RefreshCcw className="mr-2 h-4 w-4" />
+                                      <span>Re-Upload</span>
+                                  </DropdownMenuItem>
+                              )}
+                          </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
