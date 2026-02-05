@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
 import { type Submission, type User as UserData } from "@/lib/data";
-import { MoreHorizontal, RefreshCcw, CheckCircle2 } from "lucide-react";
+import { MoreHorizontal, RefreshCcw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +62,7 @@ export default function MySubmissionsPage() {
       case 'Approved':
         return 'default';
       case 'Pending':
+      case 'Amended - Pending Review':
         return 'secondary';
       case 'Escalated':
         return 'destructive';
@@ -74,16 +75,6 @@ export default function MySubmissionsPage() {
     }
   };
   
-  const getAmendmentStatusIcon = (status: Submission['status']) => {
-    switch (status) {
-        case 'Amendment':
-            return <RefreshCcw className="h-5 w-5 text-red-500" title="Re-Upload Required" />;
-        case 'Amended - Pending Review':
-            return <CheckCircle2 className="h-5 w-5 text-green-500" title="Responded" />;
-        default:
-            return <span className="text-muted-foreground">-</span>;
-    }
-  };
 
   return (
     <Card className="hover-lift">
@@ -100,49 +91,54 @@ export default function MySubmissionsPage() {
               <TableHead>Customer</TableHead>
               <TableHead className="hidden md:table-cell">Branch</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-center">Amendment Status</TableHead>
               <TableHead className="hidden md:table-cell">Submitted</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {userSubmissions.map((submission) => (
-              <TableRow key={submission.id} className="cursor-pointer hover-lift" onClick={() => router.push(`/review-queue/${submission.id}`)}>
-                <TableCell>
+              <TableRow key={submission.id} className="hover-lift">
+                <TableCell className="cursor-pointer" onClick={() => router.push(`/review-queue/${submission.id}`)}>
                   <div className="font-medium">{submission.customerName}</div>
                   <div className="hidden text-sm text-muted-foreground md:inline">
                     ID: {submission.id}
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">{submission.branch}</TableCell>
-                <TableCell>
+                <TableCell className="hidden md:table-cell cursor-pointer" onClick={() => router.push(`/review-queue/${submission.id}`)}>{submission.branch}</TableCell>
+                <TableCell className="cursor-pointer" onClick={() => router.push(`/review-queue/${submission.id}`)}>
                   <Badge variant={getBadgeVariant(submission.status)}>
-                    {submission.status}
+                    {submission.status === 'Amended - Pending Review' ? 'Pending Review' : submission.status}
                   </Badge>
                 </TableCell>
-                 <TableCell className="text-center">
-                    {getAmendmentStatusIcon(submission.status)}
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden md:table-cell cursor-pointer" onClick={() => router.push(`/review-queue/${submission.id}`)}>
                   {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
                 </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/review-queue/${submission.id}`); }}>
-                        View Details
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                <TableCell className="text-right">
+                    {submission.status === 'Amendment' ? (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/review-queue/${submission.id}`);
+                            }}
+                        >
+                            <RefreshCcw className="mr-2 h-4 w-4" />
+                            Re-Upload
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/review-queue/${submission.id}`);
+                            }}
+                        >
+                            View Details
+                        </Button>
+                    )}
                 </TableCell>
               </TableRow>
             ))}
