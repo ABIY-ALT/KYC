@@ -23,20 +23,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { InlineUploader } from "@/components/amendment-uploader";
 
-// Schema for a single uploaded file's data
-const uploadedFileSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number(),
-  url: z.string(), // This will be a Data URL
-});
-
-// Schema for a file associated with a specific amendment request
+// Schema for a single file being managed by the form
 const amendedFileSchema = z.object({
   amendmentRequestId: z.string(),
   documentType: z.string(),
   originalDocumentId: z.string().optional(),
-  file: uploadedFileSchema,
+  file: z.instanceof(File),
 });
 
 // Main schema for the amendment submission form
@@ -52,6 +44,7 @@ const amendmentResponseSchema = z.object({
 );
 
 type FormValues = z.infer<typeof amendmentResponseSchema>;
+type FormAmendedFile = z.infer<typeof amendedFileSchema> & { previewUrl?: string };
 
 export default function AmendSubmissionPage() {
     const params = useParams<{ id: string }>();
@@ -95,37 +88,26 @@ export default function AmendSubmissionPage() {
             });
             return;
         }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-
-            const fileData = {
-                amendmentRequestId: request.id,
-                documentType: request.targetDocumentType,
-                originalDocumentId: request.targetDocumentId,
-                file: {
-                    name: uploadedFile.name,
-                    type: uploadedFile.type,
-                    size: uploadedFile.size,
-                    url: dataUrl,
-                },
-            };
-            
-            const currentFiles = form.getValues("amendedFiles");
-            const existingIndex = currentFiles.findIndex(
-              (f) => f.amendmentRequestId === request.id
-            );
-      
-            if (existingIndex >= 0) {
-              update(existingIndex, fileData);
-            } else {
-              append(fileData);
-            }
-      
-            form.trigger("amendedFiles");
+        
+        const fileData = {
+            amendmentRequestId: request.id,
+            documentType: request.targetDocumentType,
+            originalDocumentId: request.targetDocumentId,
+            file: uploadedFile,
         };
-        reader.readAsDataURL(uploadedFile);
+        
+        const currentFiles = form.getValues("amendedFiles");
+        const existingIndex = currentFiles.findIndex(
+            (f) => f.amendmentRequestId === request.id
+        );
+    
+        if (existingIndex >= 0) {
+            update(existingIndex, fileData);
+        } else {
+            append(fileData);
+        }
+    
+        form.trigger("amendedFiles");
     };
 
     const handleFileRemoved = (amendmentRequestId: string) => {
@@ -152,7 +134,9 @@ export default function AmendSubmissionPage() {
               id: `doc-${Date.now()}-${index}`,
               fileName: f.file.name,
               documentType: f.documentType,
-              url: f.file.url,
+              // CRITICAL FIX: Generate a placeholder URL to simulate storage.
+              // Do NOT store the file content (Data URL) in the global state.
+              url: `https://picsum.photos/seed/${f.file.name}${Date.now()}/800/1100`,
               size: f.file.size,
               format: f.file.type,
               uploadedAt: new Date().toISOString(),
