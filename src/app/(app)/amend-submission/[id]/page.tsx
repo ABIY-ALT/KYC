@@ -39,7 +39,6 @@ const amendedFileSchema = z.object({
 const amendmentResponseSchema = z.object({
   responseComment: z.string().min(10, "A response comment of at least 10 characters is required."),
   amendedFiles: z.array(amendedFileSchema),
-  submitting: z.boolean().optional(),
 }).refine(
   (data) => data.amendedFiles.length > 0,
   {
@@ -58,10 +57,11 @@ export default function AmendSubmissionPage() {
     
     const [submission, setSubmission] = useState<Submission | undefined>();
     const [isLoading, setIsLoading] = useState(true);
+    const [submissionStatus, setSubmissionStatus] = useState<'idle' | 'submitting' | 'submitted'>('idle');
 
     const form = useForm<FormValues>({
         resolver: zodResolver(amendmentResponseSchema),
-        defaultValues: { responseComment: "", amendedFiles: [], submitting: false },
+        defaultValues: { responseComment: "", amendedFiles: [] },
     });
 
     const { fields, append, remove, update } = useFieldArray({
@@ -69,8 +69,6 @@ export default function AmendSubmissionPage() {
         name: "amendedFiles",
         keyName: 'formId',
     });
-    
-    const isSubmitting = form.watch("submitting");
 
     useEffect(() => {
         if (params.id) {
@@ -80,7 +78,17 @@ export default function AmendSubmissionPage() {
         setIsLoading(false);
     }, [params.id, submissions]);
 
-    const handleFileUploaded = (request: AmendmentRequest, uploadedFile: File) => {
+    useEffect(() => {
+        if (submissionStatus === 'submitted') {
+            const timer = setTimeout(() => {
+                router.push('/submissions');
+            }, 1500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [submissionStatus, router]);
+
+    const handleFileUploaded = useCallback((request: AmendmentRequest, uploadedFile: File) => {
         if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
             toast({
                 variant: "destructive",
@@ -118,21 +126,20 @@ export default function AmendSubmissionPage() {
             form.trigger("amendedFiles");
         };
         reader.readAsDataURL(uploadedFile);
-    };
+    }, [append, form, toast, update]);
 
-    const handleFileRemoved = (amendmentRequestId: string) => {
+    const handleFileRemoved = useCallback((amendmentRequestId: string) => {
         const fieldIndex = fields.findIndex(f => f.amendmentRequestId === amendmentRequestId);
         if (fieldIndex > -1) {
             remove(fieldIndex);
         }
-    };
+    }, [fields, remove]);
     
     const handleAmendmentSubmit = async (data: FormValues) => {
-      if (!submission) return;
+      if (!submission || submissionStatus === 'submitting') return;
     
       try {
-        // Disable button while processing
-        form.setValue("submitting", true);
+        setSubmissionStatus('submitting');
     
         const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
             const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
@@ -140,7 +147,7 @@ export default function AmendSubmissionPage() {
                 id: `doc-${Date.now()}-${index}`,
                 fileName: f.file.name,
                 documentType: f.documentType,
-                url: f.file.url,
+                url: f.file.url, 
                 size: f.file.size,
                 format: f.file.type,
                 uploadedAt: new Date().toISOString(),
@@ -152,11 +159,11 @@ export default function AmendSubmissionPage() {
     
         toast({
           title: "Amendment Response Sent",
-          description: "Your response has been sent to the KYC officer for review.",
+          description: "Your response has been sent for re-review. Redirecting...",
         });
+
+        setSubmissionStatus('submitted');
     
-        // Slight delay to ensure React flushes updates before navigating
-        setTimeout(() => router.push('/submissions'), 100);
       } catch (err) {
         console.error(err);
         toast({
@@ -164,9 +171,7 @@ export default function AmendSubmissionPage() {
             title: "Submission Failed",
             description: "Something went wrong, please try again.",
         });
-      } finally {
-        // This runs even if there's an error
-        form.setValue("submitting", false);
+        setSubmissionStatus('idle');
       }
     };
     
@@ -246,9 +251,9 @@ export default function AmendSubmissionPage() {
                 </Card>
                 
                 <CardFooter className="justify-end sticky bottom-0 bg-background/95 py-4 border-t z-10">
-                     <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isSubmitting ? "Submitting..." : "Submit Amendment Response"}
+                     <Button type="submit" disabled={submissionStatus === 'submitting' || !form.formState.isValid}>
+                        {submissionStatus === 'submitting' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {submissionStatus === 'submitting' ? "Submitting..." : "Submit Amendment Response"}
                     </Button>
                 </CardFooter>
             </form>
