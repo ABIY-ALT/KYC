@@ -106,7 +106,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
       );
   }, []);
 
-  const submitAmendment = useCallback((submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string): Promise<void> => {
+  const submitAmendment = useCallback(async (submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string): Promise<void> => {
     return new Promise((resolve) => {
         setSubmissions(currentSubmissions =>
             currentSubmissions.map(s => {

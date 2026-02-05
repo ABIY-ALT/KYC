@@ -1,10 +1,19 @@
 
 "use client";
 
+import { File as FileIcon } from "lucide-react";
+
+type UploadedFile = {
+  name: string;
+  size: number;
+  type: string;
+  url: string; // Data URL for preview
+};
+
 type InlineUploaderProps = {
   mode: 'REPLACE' | 'ADD';
   documentType: string;
-  uploadedFile?: File;
+  uploadedFile?: UploadedFile;
   onFileUploaded: (file: File) => void;
   onFileRemoved: () => void;
 };
@@ -38,11 +47,18 @@ export function InlineUploader({
         </label>
       ) : (
         <div className="flex justify-between items-center bg-background p-2 rounded">
-          <div>
-            <p className="text-sm font-medium">{uploadedFile.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {(uploadedFile.size / 1024).toFixed(1)} KB
-            </p>
+          <div className="flex items-center gap-2">
+             {uploadedFile.type.startsWith("image/") ? (
+                <img src={uploadedFile.url} alt={uploadedFile.name} className="h-10 w-10 object-cover rounded-sm" />
+             ) : (
+                <FileIcon className="h-10 w-10 text-muted-foreground" />
+             )}
+             <div>
+                <p className="text-sm font-medium">{uploadedFile.name}</p>
+                <p className="text-xs text-muted-foreground">
+                {(uploadedFile.size / 1024).toFixed(1)} KB
+                </p>
+             </div>
           </div>
           <button
             type="button"

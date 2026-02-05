@@ -9,8 +9,6 @@ import { z } from "zod";
 import { useSubmissions } from '@/context/submissions-context';
 import { type Submission, type SubmittedDocument, type AmendmentRequest } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { format } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,15 +18,21 @@ import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Label } from "@/components/ui/label";
 import { InlineUploader } from "@/components/amendment-uploader";
 
 // Schema for a single file object being managed by the form
+const amendedFileObjectSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  size: z.number(),
+  url: z.string(), // This will be a Data URL for local preview
+});
+
 const amendedFileSchema = z.object({
     amendmentRequestId: z.string(),
     documentType: z.string(),
     originalDocumentId: z.string().optional(),
-    file: z.instanceof(File),
+    file: amendedFileObjectSchema,
 });
 
 // Main schema for the amendment submission form
@@ -91,25 +95,34 @@ export default function AmendSubmissionPage() {
             return;
         }
         
-        const fileData = {
-            amendmentRequestId: request.id,
-            documentType: request.targetDocumentType,
-            originalDocumentId: request.targetDocumentId,
-            file: uploadedFile,
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const fileData = {
+                amendmentRequestId: request.id,
+                documentType: request.targetDocumentType,
+                originalDocumentId: request.targetDocumentId,
+                file: {
+                    name: uploadedFile.name,
+                    type: uploadedFile.type,
+                    size: uploadedFile.size,
+                    url: dataUrl,
+                },
+            };
+
+            const currentFiles = form.getValues("amendedFiles");
+            const existingIndex = currentFiles.findIndex(
+                f => f.amendmentRequestId === request.id
+            );
+
+            if (existingIndex >= 0) {
+                update(existingIndex, fileData);
+            } else {
+                append(fileData);
+            }
+            form.trigger("amendedFiles");
         };
-
-        const currentFiles = form.getValues("amendedFiles");
-        const existingIndex = currentFiles.findIndex(
-            f => f.amendmentRequestId === request.id
-        );
-
-        if (existingIndex >= 0) {
-            update(existingIndex, fileData);
-        } else {
-            append(fileData);
-        }
-
-        form.trigger("amendedFiles");
+        reader.readAsDataURL(uploadedFile);
     };
 
     const handleFileRemoved = (amendmentRequestId: string) => {
@@ -126,25 +139,28 @@ export default function AmendSubmissionPage() {
             form.setValue("submitting", true);
 
             const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
-            const amendment = submission.pendingAmendments?.find(
-                a => a.id === f.amendmentRequestId
-            );
+                const amendment = submission.pendingAmendments?.find(
+                    a => a.id === f.amendmentRequestId
+                );
 
-            const originalDoc =
-                amendment?.type === "REPLACE_EXISTING"
-                ? submission.documents.find(d => d.id === f.originalDocumentId)
-                : undefined;
+                const originalDoc =
+                    amendment?.type === "REPLACE_EXISTING"
+                    ? submission.documents.find(d => d.id === f.originalDocumentId)
+                    : undefined;
+                
+                // CRITICAL: Use a placeholder URL, not the large Data URL from the form state.
+                const stableUrl = `https://picsum.photos/seed/newdoc${Date.now()}${index}/800/1100`;
 
-            return {
-                id: `doc-${Date.now()}-${index}`,
-                fileName: f.file.name,
-                documentType: f.documentType,
-                url: `https://picsum.photos/seed/newdoc${Date.now()}${index}/800/1100`,
-                size: f.file.size,
-                format: f.file.type,
-                uploadedAt: new Date().toISOString(),
-                version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
-            };
+                return {
+                    id: `doc-${Date.now()}-${index}`,
+                    fileName: f.file.name,
+                    documentType: f.documentType,
+                    url: stableUrl,
+                    size: f.file.size,
+                    format: f.file.type,
+                    uploadedAt: new Date().toISOString(),
+                    version: originalDoc ? (originalDoc.version || 1) + 1 : 1,
+                };
             });
 
             await submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
