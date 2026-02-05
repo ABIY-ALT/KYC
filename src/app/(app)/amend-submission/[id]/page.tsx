@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Loader2 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -23,18 +23,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { InlineUploader } from "@/components/amendment-uploader";
 
-// Schema for a single file being managed by the form
+// Schema for a single file object being managed by the form
 const amendedFileSchema = z.object({
-  amendmentRequestId: z.string(),
-  documentType: z.string(),
-  originalDocumentId: z.string().optional(),
-  file: z.instanceof(File),
+    amendmentRequestId: z.string(),
+    documentType: z.string(),
+    originalDocumentId: z.string().optional(),
+    file: z.object({
+        name: z.string(),
+        type: z.string(),
+        size: z.number(),
+        url: z.string(),
+    }),
 });
 
 // Main schema for the amendment submission form
 const amendmentResponseSchema = z.object({
   responseComment: z.string().min(10, "A response comment of at least 10 characters is required."),
   amendedFiles: z.array(amendedFileSchema),
+  submitting: z.boolean().optional(),
 }).refine(
   (data) => data.amendedFiles.length > 0,
   {
@@ -44,7 +50,6 @@ const amendmentResponseSchema = z.object({
 );
 
 type FormValues = z.infer<typeof amendmentResponseSchema>;
-type FormAmendedFile = z.infer<typeof amendedFileSchema> & { previewUrl?: string };
 
 export default function AmendSubmissionPage() {
     const params = useParams<{ id: string }>();
@@ -57,7 +62,7 @@ export default function AmendSubmissionPage() {
 
     const form = useForm<FormValues>({
         resolver: zodResolver(amendmentResponseSchema),
-        defaultValues: { responseComment: "", amendedFiles: [] },
+        defaultValues: { responseComment: "", amendedFiles: [], submitting: false },
     });
 
     const { fields, append, remove, update } = useFieldArray({
@@ -65,6 +70,8 @@ export default function AmendSubmissionPage() {
         name: "amendedFiles",
         keyName: 'formId',
     });
+    
+    const isSubmitting = form.watch("submitting");
 
     useEffect(() => {
         if (params.id) {
@@ -89,25 +96,38 @@ export default function AmendSubmissionPage() {
             return;
         }
         
-        const fileData = {
-            amendmentRequestId: request.id,
-            documentType: request.targetDocumentType,
-            originalDocumentId: request.targetDocumentId,
-            file: uploadedFile,
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+
+            const fileData = {
+                amendmentRequestId: request.id,
+                documentType: request.targetDocumentType,
+                originalDocumentId: request.targetDocumentId,
+                file: {
+                    name: uploadedFile.name,
+                    type: uploadedFile.type,
+                    size: uploadedFile.size,
+                    url: dataUrl,
+                },
+            };
+
+            const currentFiles = form.getValues("amendedFiles");
+            const existingIndex = currentFiles.findIndex(
+                f => f.amendmentRequestId === request.id
+            );
+
+            if (existingIndex >= 0) {
+                update(existingIndex, fileData);
+            } else {
+                append(fileData);
+            }
+
+            form.trigger("amendedFiles");
         };
-        
-        const currentFiles = form.getValues("amendedFiles");
-        const existingIndex = currentFiles.findIndex(
-            (f) => f.amendmentRequestId === request.id
-        );
-    
-        if (existingIndex >= 0) {
-            update(existingIndex, fileData);
-        } else {
-            append(fileData);
-        }
-    
-        form.trigger("amendedFiles");
+
+        reader.readAsDataURL(uploadedFile);
     };
 
     const handleFileRemoved = (amendmentRequestId: string) => {
@@ -117,47 +137,53 @@ export default function AmendSubmissionPage() {
         }
     };
     
-    const handleAmendmentSubmit = (data: FormValues) => {
+    const handleAmendmentSubmit = async (data: FormValues) => {
         if (!submission) return;
-      
-        const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
+        
+        try {
+            form.setValue("submitting", true);
+
+            const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
             const amendment = submission.pendingAmendments?.find(
-              (a) => a.id === f.amendmentRequestId
+                a => a.id === f.amendmentRequestId
             );
-      
+
             const originalDoc =
-              amendment?.type === "REPLACE_EXISTING"
-                ? submission.documents.find((d) => d.id === f.originalDocumentId)
+                amendment?.type === "REPLACE_EXISTING"
+                ? submission.documents.find(d => d.id === f.originalDocumentId)
                 : undefined;
-      
+
             return {
-              id: `doc-${Date.now()}-${index}`,
-              fileName: f.file.name,
-              documentType: f.documentType,
-              // CRITICAL FIX: Generate a placeholder URL to simulate storage.
-              // Do NOT store the file content (Data URL) in the global state.
-              url: `https://picsum.photos/seed/${f.file.name}${Date.now()}/800/1100`,
-              size: f.file.size,
-              format: f.file.type,
-              uploadedAt: new Date().toISOString(),
-              version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
+                id: `doc-${Date.now()}-${index}`,
+                fileName: f.file.name,
+                documentType: f.documentType,
+                url: f.file.url,
+                size: f.file.size,
+                format: f.file.type,
+                uploadedAt: new Date().toISOString(),
+                version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
             };
-          });
-      
-        submitAmendment(
-          submission.id,
-          newDocuments,
-          data.responseComment,
-          'Fully Amended'
-        );
-      
-        toast({
-          title: "Amendment Submitted",
-          description: `Documents sent for re-review.`,
-        });
-      
-        router.push('/submissions');
-      };
+            });
+
+            await submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
+
+            toast({
+                title: "Amendment Response Sent",
+                description: "Your response has been sent to the KYC officer for review.",
+            });
+
+            setTimeout(() => router.push('/submissions'), 100);
+
+        } catch (err) {
+            toast({
+                variant: "destructive",
+                title: "Submission Failed",
+                description: "Something went wrong, please try again.",
+            });
+        } finally {
+            form.setValue("submitting", false);
+        }
+    };
     
     if (isLoading) {
         return <Skeleton className="h-screen w-full" />;
@@ -235,7 +261,10 @@ export default function AmendSubmissionPage() {
                 </Card>
                 
                 <CardFooter className="justify-end sticky bottom-0 bg-background/95 py-4 border-t z-10">
-                    <Button type="submit" disabled={!form.formState.isValid}>Submit Amendment Response</Button>
+                     <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isSubmitting ? "Submitting..." : "Submit Amendment Response"}
+                    </Button>
                 </CardFooter>
             </form>
             </Form>
