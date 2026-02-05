@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useRouter, notFound } from 'next/navigation';
+import { useRouter, notFound, useParams } from 'next/navigation';
 import Image from "next/image";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -89,7 +90,8 @@ function InlineUploader({ originalDoc, onFileUploaded }: { originalDoc: Submitte
     );
 }
 
-export default function SubmissionReviewPage({ params }: { params: { id: string } }) {
+export default function SubmissionReviewPage() {
+    const params = useParams<{ id: string }>();
     const { submissions, updateSubmissionStatus, submitAmendment } = useSubmissions();
     const { user: authUser } = useUser();
     const firestore = useFirestore();
@@ -104,9 +106,11 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Find submission based on id from params
-        const submission = submissions.find(s => s.id === params.id);
-        setSubmissionState(submission);
+        // Find submission based on id from params, only when params.id is available
+        if (params && params.id) {
+            const submission = submissions.find(s => s.id === params.id);
+            setSubmissionState(submission);
+        }
         setIsLoading(false);
     }, [params, submissions]);
 
@@ -377,7 +381,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                             <div className="flex-1"><p className="font-medium">{f.docType}</p><p className="text-sm text-muted-foreground">{f.file.name}</p></div>
                                          </div>
                                      ))}
-                                </CardContent>
+                                 </CardContent>
                              </Card>
                         </div>
                         <DialogFooter className="mt-4">
@@ -488,3 +492,5 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         </div>
     );
 }
+
+    
