@@ -193,7 +193,9 @@ export default function AmendmentsPage() {
                                 <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
                                     View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Process Amendment</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push(`/review-queue/${submission.id}`)}>
+                                    Process Amendment
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
