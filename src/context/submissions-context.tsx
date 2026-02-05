@@ -12,6 +12,7 @@ type SubmissionsContextType = {
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
   resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => void;
+  submitAmendment: (submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string) => void;
 };
 
 const SubmissionsContext = createContext<SubmissionsContextType | undefined>(undefined);
@@ -104,9 +105,43 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
       );
   }, []);
 
+  const submitAmendment = useCallback((submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string) => {
+    setSubmissions(currentSubmissions =>
+        currentSubmissions.map(s => {
+            if (s.id === submissionId) {
+                // This combines all pending requests into a single history entry.
+                const reasons = s.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
+                
+                const newHistoryEntry: Amendment = {
+                    requestedAt: s.pendingAmendments?.[0]?.requestedAt || new Date().toISOString(),
+                    requestedBy: s.officer,
+                    reason: reasons,
+                    respondedAt: new Date().toISOString(),
+                    responseComment: comment,
+                    responseType: responseType,
+                    documents: newDocuments,
+                };
+                
+                const updatedDocuments = [...s.documents, ...newDocuments];
+
+                const updatedSubmission: Submission = {
+                    ...s,
+                    status: 'Pending Review',
+                    documents: updatedDocuments,
+                    amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
+                    pendingAmendments: [], // All pending requests are considered resolved
+                };
+
+                return updatedSubmission;
+            }
+            return s;
+        })
+    );
+  }, []);
+
 
   return (
-    <SubmissionsContext.Provider value={{ submissions, addSubmission, updateSubmissionStatus, resolveAmendmentRequest }}>
+    <SubmissionsContext.Provider value={{ submissions, addSubmission, updateSubmissionStatus, resolveAmendmentRequest, submitAmendment }}>
       {children}
     </SubmissionsContext.Provider>
   );

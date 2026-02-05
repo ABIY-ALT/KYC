@@ -61,7 +61,7 @@ export default function AmendSubmissionPage() {
         if (params.id) {
             const sub = submissions.find(s => s.id === params.id);
             // This page is only for submissions that require amendment.
-            if (sub && sub.status === 'Amendment') {
+            if (sub && sub.status === 'Action Required') {
                 setSubmission(sub);
             } else if (sub) {
                 // If the submission exists but is not in the correct status, redirect.
@@ -138,7 +138,7 @@ export default function AmendSubmissionPage() {
         notFound();
     }
 
-    const requestDate = submission.amendmentRequestedAt ? format(new Date(submission.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
+    const requestDate = submission.amendmentHistory?.[0]?.requestedAt ? format(new Date(submission.amendmentHistory[0].requestedAt), 'dd/MM/yyyy') : 'a recent date';
     const placeholderTemplate = `All requested amendments have been completed. The corrected document(s) have been re-uploaded as per your comment dated ${requestDate}. Please proceed with review.`;
 
 
@@ -150,15 +150,21 @@ export default function AmendSubmissionPage() {
                  <Alert variant="destructive" className="mb-6">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle className="text-lg mb-2">Action Required: Amendment for {submission.customerName}</AlertTitle>
-                    <AlertDescription className="space-y-2">
-                        <p>A KYC officer has requested changes for this submission. Please review their comments and re-upload the corrected documents.</p>
-                         <Card className="bg-background/50 border-destructive/20">
-                            <CardHeader className="p-4">
-                                <Label className="font-semibold text-muted-foreground">KYC Officer Comment</Label>
-                                <p className="text-foreground bg-muted p-3 rounded-md mt-2">{submission.amendmentReason}</p>
-                            </CardHeader>
-                        </Card>
-                         <p className="text-xs pt-2">Requested On: {format(new Date(submission.amendmentRequestedAt!), "PPP 'at' p")}</p>
+                    <AlertDescription className="space-y-4">
+                        <p>A KYC officer has requested changes for this submission. Please review the comments below and re-upload the corrected documents.</p>
+                        {(submission.pendingAmendments && submission.pendingAmendments.length > 0) ? (
+                            submission.pendingAmendments.map(request => (
+                                <Card key={request.id} className="bg-background/50 border-destructive/20">
+                                    <CardHeader className="p-4">
+                                        <Label className="font-semibold text-muted-foreground">
+                                            Request: {request.type === 'REPLACE_EXISTING' ? 'Replace' : 'Add'} "{request.targetDocumentType}"
+                                        </Label>
+                                        <p className="text-foreground bg-muted p-3 rounded-md mt-2">{request.comment}</p>
+                                        <p className="text-xs pt-2 text-right">Requested On: {format(new Date(request.requestedAt), "PPP 'at' p")}</p>
+                                    </CardHeader>
+                                </Card>
+                            ))
+                        ) : null }
                     </AlertDescription>
                 </Alert>
 
@@ -293,5 +299,3 @@ export default function AmendSubmissionPage() {
         </div>
     );
 }
-
-    
