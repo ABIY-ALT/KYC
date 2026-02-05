@@ -97,8 +97,8 @@ export default function AmendSubmissionPage() {
         }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
-            const dataUrl = e.target?.result as string;
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
 
             const fileData = {
                 amendmentRequestId: request.id,
@@ -112,12 +112,17 @@ export default function AmendSubmissionPage() {
                 },
             };
             
-            const existingIndex = fields.findIndex(f => f.amendmentRequestId === request.id);
-            if (existingIndex > -1) {
-                update(existingIndex, fileData);
+            const currentFiles = form.getValues("amendedFiles");
+            const existingIndex = currentFiles.findIndex(
+              (f) => f.amendmentRequestId === request.id
+            );
+      
+            if (existingIndex >= 0) {
+              update(existingIndex, fileData);
             } else {
-                append(fileData);
+              append(fileData);
             }
+      
             form.trigger("amendedFiles");
         };
         reader.readAsDataURL(uploadedFile);
@@ -132,31 +137,43 @@ export default function AmendSubmissionPage() {
     
     const handleAmendmentSubmit = (data: FormValues) => {
         if (!submission) return;
-        
+      
         const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
-             const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
-             return {
-                id: `doc-${Date.now()}-${index}`,
-                fileName: f.file.name,
-                documentType: f.documentType,
-                url: f.file.url,
-                size: f.file.size,
-                format: f.file.type,
-                uploadedAt: new Date().toISOString(),
-                version: (originalDoc?.version || 0) + 1,
-             }
-        });
-
-        // Using the existing context function, assuming it handles the logic correctly
-        submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
-
+            const amendment = submission.pendingAmendments?.find(
+              (a) => a.id === f.amendmentRequestId
+            );
+      
+            const originalDoc =
+              amendment?.type === "REPLACE_EXISTING"
+                ? submission.documents.find((d) => d.id === f.originalDocumentId)
+                : undefined;
+      
+            return {
+              id: `doc-${Date.now()}-${index}`,
+              fileName: f.file.name,
+              documentType: f.documentType,
+              url: f.file.url,
+              size: f.file.size,
+              format: f.file.type,
+              uploadedAt: new Date().toISOString(),
+              version: originalDoc ? (originalDoc.version || 0) + 1 : 1,
+            };
+          });
+      
+        submitAmendment(
+          submission.id,
+          newDocuments,
+          data.responseComment,
+          'Fully Amended'
+        );
+      
         toast({
-            title: "Amendment Submitted",
-            description: `Corrected documents for ${submission.customerName} have been sent for re-review.`,
+          title: "Amendment Submitted",
+          description: `Documents sent for re-review.`,
         });
-
+      
         router.push('/submissions');
-    };
+      };
     
     if (isLoading) {
         return <Skeleton className="h-screen w-full" />;
