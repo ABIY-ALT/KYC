@@ -66,14 +66,14 @@ export default function DashboardPage() {
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                 {kpiData.map((kpi, index) => (
-                    <Card key={index}>
+                    <Card key={index} className="hover-lift">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{kpi.value.toLocaleString()}</div>
+                            <div className="text-2xl font-bold animate-pulse-glow">{kpi.value.toLocaleString()}</div>
                             <p className={`text-xs ${kpi.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 {kpi.change >= 0 ? '+' : ''}{kpi.change}% from last month
                             </p>
@@ -83,7 +83,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
-                <Card>
+                <Card className="hover-lift">
                     <CardHeader>
                         <CardTitle>Submission Volume Trends</CardTitle>
                         <CardDescription>Monthly submission volume for the last 6 months.</CardDescription>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="hover-lift">
                     <CardHeader>
                         <CardTitle>Workload Distribution</CardTitle>
                         <CardDescription>Breakdown of all submissions by current status.</CardDescription>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-                <Card className="xl:col-span-2">
+                <Card className="xl:col-span-2 hover-lift">
                     <CardHeader>
                         <CardTitle>Recent Submissions</CardTitle>
                         <CardDescription>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                     <CardContent className="grid gap-6">
                         {recentSubmissions.map((submission, index) => (
                             <div key={submission.id} className="flex items-center gap-4">
-                                <Avatar className="hidden h-9 w-9 sm:flex">
+                                <Avatar className="hidden h-9 w-9 sm:flex hover:animate-float">
                                     <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt="Avatar" data-ai-hint={userAvatars[index % userAvatars.length].imageHint} />
                                     <AvatarFallback>{submission.customerName.slice(0,2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
