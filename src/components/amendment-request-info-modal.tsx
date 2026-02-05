@@ -24,9 +24,16 @@ import { AlertTriangle, UploadCloud, File as FileIcon, XCircle } from "lucide-re
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 
+const fileDataSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  size: z.number(),
+  url: z.string(),
+});
+
 const responseSchema = z.object({
   responseComment: z.string().min(1, "A response comment is required."),
-  file: z.instanceof(File).optional(),
+  file: fileDataSchema.optional(),
 });
 
 type FormValues = z.infer<typeof responseSchema>;
@@ -47,14 +54,25 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
     defaultValues: { responseComment: "", file: undefined },
   });
   
-  const { getRootProps, getInputProps, isDragActive, acceptedFiles, fileRejections } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
     onDrop: (accepted, rejected) => {
       if (rejected.length > 0) {
         toast({ variant: "destructive", title: "File upload failed", description: rejected[0].errors[0].message });
       } else if (accepted.length > 0) {
-        form.setValue('file', accepted[0]);
-        form.trigger('file');
+        const file = accepted[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const url = e.target?.result as string;
+            form.setValue('file', {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                url: url,
+            });
+            form.trigger('file');
+        };
+        reader.readAsDataURL(file);
       }
     },
     accept: { 'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf'] }
@@ -68,7 +86,6 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
   const onSubmit = (data: FormValues) => {
     if (!submission || !request) return;
 
-    // A file is required if the request is ADD_NEW or REPLACE_EXISTING
     if ((request.type === 'ADD_NEW' || request.type === 'REPLACE_EXISTING') && !data.file) {
       form.setError('file', { type: 'manual', message: 'A file must be uploaded for this type of request.' });
       return;
@@ -83,9 +100,9 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
     form.reset();
   };
 
-  const renderFilePreview = (file: File) => {
+  const renderFilePreview = (file: {name: string, url: string, type: string}) => {
     if (file.type.startsWith("image/")) {
-      return <Image src={URL.createObjectURL(file)} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
+      return <Image src={file.url} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
     }
     return <FileIcon className="h-10 w-10 text-muted-foreground" />
   }

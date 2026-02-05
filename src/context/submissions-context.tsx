@@ -5,11 +5,13 @@ import { submissions as initialSubmissions, type Submission, type SubmittedDocum
 
 type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
 
+type FileData = { name: string; type: string; size: number; url: string; };
+
 type SubmissionsContextType = {
   submissions: Submission[];
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
-  resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFile?: File) => void;
+  resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => void;
 };
 
 const SubmissionsContext = createContext<SubmissionsContextType | undefined>(undefined);
@@ -44,7 +46,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     );
   }, []);
   
-  const resolveAmendmentRequest = useCallback((submissionId: string, amendmentRequestId: string, branchComment: string, newFile?: File) => {
+  const resolveAmendmentRequest = useCallback((submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: FileData) => {
       setSubmissions(currentSubmissions => 
         currentSubmissions.map(s => {
             if (s.id === submissionId) {
@@ -54,7 +56,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                 let newDocumentForHistory: SubmittedDocument | undefined = undefined;
                 let updatedDocuments = [...s.documents];
 
-                if (newFile) {
+                if (newFileData) {
                     let version = 1;
                     if (request.type === 'REPLACE_EXISTING') {
                         const existingDocs = s.documents.filter(d => d.documentType === request.targetDocumentType);
@@ -64,11 +66,11 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
 
                     const newDocument: SubmittedDocument = {
                         id: `doc-${Date.now()}`,
-                        fileName: newFile.name,
+                        fileName: newFileData.name,
                         documentType: request.targetDocumentType,
-                        url: URL.createObjectURL(newFile),
-                        size: newFile.size,
-                        format: newFile.type,
+                        url: newFileData.url,
+                        size: newFileData.size,
+                        format: newFileData.type,
                         uploadedAt: new Date().toISOString(),
                         version: version
                     };
@@ -82,19 +84,20 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                     reason: request.comment,
                     respondedAt: new Date().toISOString(),
                     responseComment: branchComment,
-                    responseType: newFile ? 'File Submitted' : 'Comment Only',
+                    responseType: newFileData ? 'File Submitted' : 'Comment Only',
                     documents: newDocumentForHistory ? [newDocumentForHistory] : [],
                 };
 
                 const updatedPendingAmendments = (s.pendingAmendments || []).filter(req => req.id !== amendmentRequestId);
                 
-                return {
+                const updatedSubmission: Submission = {
                     ...s,
                     documents: updatedDocuments,
                     amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
                     pendingAmendments: updatedPendingAmendments,
                     status: updatedPendingAmendments.length === 0 ? 'Pending Review' : s.status,
                 };
+                return updatedSubmission;
             }
             return s;
         })
