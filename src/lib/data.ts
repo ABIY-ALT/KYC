@@ -1,3 +1,13 @@
+export type SubmittedDocument = {
+  id: string;
+  fileName: string;
+  documentType: string;
+  url: string;
+  size: number;
+  format: string;
+  uploadedAt: string;
+};
+
 export type Submission = {
   id: string;
   customerName: string;
@@ -5,9 +15,7 @@ export type Submission = {
   submittedAt: string;
   status: 'Pending' | 'Approved' | 'Rejected' | 'Amendment' | 'Escalated';
   officer: string;
-  documentType: 'Passport' | "Driver's License" | 'National ID' | 'Utility Bill';
-  documentUrl: string; // URL to the document image
-  details: string; // The text content of the document for AI processing
+  documents: SubmittedDocument[];
 };
 
 export const submissions: Submission[] = [
@@ -18,9 +26,9 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-26T10:00:00Z', 
     status: 'Pending', 
     officer: 'N/A', 
-    documentType: 'Passport', 
-    documentUrl: 'https://picsum.photos/seed/doc1/800/1100',
-    details: 'Passport\nName: Alice Johnson\nDOB: 1990-05-15\nExpiry: 2028-08-20\nCountry: USA'
+    documents: [
+      { id: 'doc-001-1', fileName: 'alice_passport.pdf', documentType: 'Passport', url: 'https://picsum.photos/seed/doc1/800/1100', size: 123456, format: 'application/pdf', uploadedAt: '2023-10-26T10:00:00Z' }
+    ]
   },
   { 
     id: 'SUB002', 
@@ -29,9 +37,9 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-26T11:30:00Z', 
     status: 'Approved', 
     officer: 'Charlie Davis',
-    documentType: "Driver's License", 
-    documentUrl: 'https://picsum.photos/seed/doc2/800/1100',
-    details: 'Driver\'s License\nName: Bob Williams\nDOB: 1985-11-02\nExpiry: 2025-10-30'
+    documents: [
+      { id: 'doc-002-1', fileName: 'bob_license.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc2/800/1100', size: 234567, format: 'image/jpeg', uploadedAt: '2023-10-26T11:30:00Z' }
+    ]
   },
   { 
     id: 'SUB003', 
@@ -40,9 +48,9 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-25T14:00:00Z', 
     status: 'Amendment', 
     officer: 'Diana Prince',
-    documentType: 'National ID',
-    documentUrl: 'https://picsum.photos/seed/doc3/800/1100',
-    details: 'National ID\nName: Carol White\nDOB: 1992-03-10\nExpiry: 2030-01-01'
+    documents: [
+      { id: 'doc-003-1', fileName: 'carol_id.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc3/800/1100', size: 345678, format: 'image/png', uploadedAt: '2023-10-25T14:00:00Z' }
+    ]
   },
   { 
     id: 'SUB004', 
@@ -51,9 +59,10 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-25T09:15:00Z', 
     status: 'Escalated', 
     officer: 'Charlie Davis',
-    documentType: 'Passport',
-    documentUrl: 'https://picsum.photos/seed/doc4/800/1100',
-    details: 'Passport\nName: David Green\nDOB: 1978-07-22\nExpiry: 2023-01-15\nNote: Document is expired.'
+    documents: [
+      { id: 'doc-004-1', fileName: 'david_passport.jpg', documentType: 'Passport', url: 'https://picsum.photos/seed/doc4/800/1100', size: 456789, format: 'image/jpeg', uploadedAt: '2023-10-25T09:15:00Z' },
+      { id: 'doc-004-2', fileName: 'david_application.pdf', documentType: 'Application Form', url: 'https://picsum.photos/seed/doc4-2/800/1100', size: 150234, format: 'application/pdf', uploadedAt: '2023-10-25T09:15:00Z' }
+    ]
   },
   { 
     id: 'SUB005', 
@@ -62,9 +71,9 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-24T16:45:00Z', 
     status: 'Rejected', 
     officer: 'Diana Prince',
-    documentType: 'Utility Bill',
-    documentUrl: 'https://picsum.photos/seed/doc5/800/1100',
-    details: 'Utility Bill\nName: E. Black\nAddress: 123 Main St\nNote: Name does not match full registered name.'
+    documents: [
+      { id: 'doc-005-1', fileName: 'eve_bill.pdf', documentType: 'Supporting Document', url: 'https://picsum.photos/seed/doc5/800/1100', size: 98765, format: 'application/pdf', uploadedAt: '2023-10-24T16:45:00Z' }
+    ]
   },
   { 
     id: 'SUB006', 
@@ -73,9 +82,9 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-27T08:00:00Z', 
     status: 'Pending', 
     officer: 'N/A',
-    documentType: "Driver's License",
-    documentUrl: 'https://picsum.photos/seed/doc6/800/1100',
-    details: 'Driver\'s License\nName: Frank Blue\nDOB: 1995-09-09\nExpiry: 2029-09-08'
+    documents: [
+      { id: 'doc-006-1', fileName: 'frank_license.jpg', documentType: "Driver's License", url: 'https://picsum.photos/seed/doc6/800/1100', size: 210987, format: 'image/jpeg', uploadedAt: '2023-10-27T08:00:00Z' }
+    ]
   },
   { 
     id: 'SUB007', 
@@ -84,9 +93,10 @@ export const submissions: Submission[] = [
     submittedAt: '2023-10-27T09:00:00Z', 
     status: 'Pending', 
     officer: 'N/A',
-    documentType: 'National ID',
-    documentUrl: 'https://picsum.photos/seed/doc7/800/1100',
-    details: 'National ID\nName: Grace Hall\nDOB: 2000-01-20\nExpiry: 2032-01-19'
+    documents: [
+       { id: 'doc-007-1', fileName: 'grace_id.png', documentType: 'National ID', url: 'https://picsum.photos/seed/doc7/800/1100', size: 301234, format: 'image/png', uploadedAt: '2023-10-27T09:00:00Z' },
+       { id: 'doc-007-2', fileName: 'grace_biz_license.pdf', documentType: 'Business License', url: 'https://picsum.photos/seed/doc7-2/800/1100', size: 504873, format: 'application/pdf', uploadedAt: '2023-10-27T09:00:00Z' }
+    ]
   },
 ];
 

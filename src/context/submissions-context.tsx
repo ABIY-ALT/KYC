@@ -5,6 +5,7 @@ import { submissions as initialSubmissions, type Submission } from '@/lib/data';
 
 type SubmissionsContextType = {
   submissions: Submission[];
+  addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status']) => void;
 };
 
@@ -12,6 +13,10 @@ const SubmissionsContext = createContext<SubmissionsContextType | undefined>(und
 
 export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
+
+  const addSubmission = useCallback((submission: Submission) => {
+    setSubmissions(currentSubmissions => [submission, ...currentSubmissions]);
+  }, []);
 
   const updateSubmissionStatus = useCallback((submissionId: string, newStatus: Submission['status']) => {
     setSubmissions(currentSubmissions =>
@@ -22,7 +27,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SubmissionsContext.Provider value={{ submissions, updateSubmissionStatus }}>
+    <SubmissionsContext.Provider value={{ submissions, addSubmission, updateSubmissionStatus }}>
       {children}
     </SubmissionsContext.Provider>
   );

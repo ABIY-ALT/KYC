@@ -152,10 +152,13 @@ export default function ReportsPage() {
         return;
     }
     // Simple CSV export logic
-    const headers = ['ID', 'Customer Name', 'Branch', 'Status', 'Submitted At', 'Officer', 'Document Type'];
+    const headers = ['ID', 'Customer Name', 'Branch', 'Status', 'Submitted At', 'Officer', 'Document Types'];
     const csvContent = [
         headers.join(','),
-        ...reportData.map(row => [row.id, `"${row.customerName}"`, row.branch, row.status, row.submittedAt, `"${row.officer}"`, `"${row.documentType}"`].join(','))
+        ...reportData.map(row => {
+          const docTypes = row.documents.map(d => d.documentType).join('; ');
+          return [row.id, `"${row.customerName}"`, row.branch, row.status, row.submittedAt, `"${row.officer}"`, `"${docTypes}"`].join(',');
+        })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
