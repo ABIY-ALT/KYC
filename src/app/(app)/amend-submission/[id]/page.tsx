@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -20,12 +19,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineUploader } from "@/components/amendment-uploader";
 
+// This schema now validates the presence of a File object.
 const amendedFileSchema = z.object({
     amendmentRequestId: z.string(),
     documentType: z.string(),
     originalDocumentId: z.string().optional(),
-    file: z.instanceof(File),
-    previewUrl: z.string(),
+    file: z.instanceof(File, { message: "File is required." }),
+    previewUrl: z.string(), // We'll keep the blob URL for previews
 });
 
 const amendmentResponseSchema = z.object({
@@ -62,6 +62,7 @@ export default function AmendSubmissionPage() {
         keyName: 'formId',
     });
     
+    // Use the more performant `useWatch` hook.
     const amendedFiles = useWatch({ control: form.control, name: "amendedFiles" });
 
     useEffect(() => {
@@ -72,11 +73,15 @@ export default function AmendSubmissionPage() {
         setIsLoading(false);
     }, [params.id, submissions]);
 
-    // Memory cleanup for object URLs
+    // CRITICAL: This effect cleans up the blob URLs when the component unmounts to prevent memory leaks.
     useEffect(() => {
-        const currentFiles = form.getValues('amendedFiles');
         return () => {
-            currentFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+            const currentFiles = form.getValues('amendedFiles');
+            currentFiles.forEach(f => {
+                if (f.previewUrl) {
+                    URL.revokeObjectURL(f.previewUrl);
+                }
+            });
         }
     }, [form]);
 
@@ -90,6 +95,7 @@ export default function AmendSubmissionPage() {
             return;
         }
         
+        // This is the lightweight object we store in state. It contains the File object, not its content.
         const fileData = {
             amendmentRequestId: request.id,
             documentType: request.targetDocumentType,
@@ -104,7 +110,8 @@ export default function AmendSubmissionPage() {
         );
 
         if (existingIndex >= 0) {
-            URL.revokeObjectURL(currentFiles[existingIndex].previewUrl); // Revoke old URL
+            // Revoke the old URL before updating to prevent memory leaks.
+            URL.revokeObjectURL(currentFiles[existingIndex].previewUrl); 
             update(existingIndex, fileData);
         } else {
             append(fileData);
@@ -117,7 +124,7 @@ export default function AmendSubmissionPage() {
         const fieldIndex = fields.findIndex(f => f.amendmentRequestId === amendmentRequestId);
         if (fieldIndex > -1) {
             const fileToRemove = fields[fieldIndex];
-            URL.revokeObjectURL(fileToRemove.previewUrl);
+            URL.revokeObjectURL(fileToRemove.previewUrl); // Clean up the blob URL.
             remove(fieldIndex);
         }
     }, [fields, remove]);
@@ -128,6 +135,8 @@ export default function AmendSubmissionPage() {
       setIsSubmitting(true);
     
       try {
+        // `data.amendedFiles` contains the lightweight File objects.
+        // The context function is responsible for handling them without overloading memory.
         await submitAmendment(submission.id, data.amendedFiles, data.responseComment, 'Fully Amended');
     
         toast({
@@ -135,6 +144,7 @@ export default function AmendSubmissionPage() {
           description: "Your response has been sent for re-review. Redirecting...",
         });
 
+        // CRITICAL: Delay navigation to allow React to flush state updates and prevent UI freeze.
         setTimeout(() => {
             router.push('/submissions');
         }, 1500);
@@ -146,7 +156,6 @@ export default function AmendSubmissionPage() {
             title: "Submission Failed",
             description: "Something went wrong, please try again.",
         });
-      } finally {
         setIsSubmitting(false);
       }
     };

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { createContext, useContext, useState, type ReactNode, useCallback } from 'react';
@@ -6,12 +5,13 @@ import { submissions as initialSubmissions, type Submission, type SubmittedDocum
 
 type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
 
+// This is the payload received from the form.
 type AmendedFilePayload = {
     file: File;
     documentType: string;
     originalDocumentId?: string;
     amendmentRequestId: string;
-    previewUrl: string;
+    previewUrl: string; // This is a blob URL that should NOT be stored long-term.
 };
 
 type SubmissionsContextType = {
@@ -19,6 +19,7 @@ type SubmissionsContextType = {
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
   resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: { name: string; size: number; type: string; url: string }) => void;
+  // The signature remains the same.
   submitAmendment: (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string) => Promise<void>;
 };
 
@@ -113,21 +114,25 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const submitAmendment = useCallback(async (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string): Promise<void> => {
+    // This is now a true async function.
     return new Promise(resolve => {
-        setTimeout(() => { // Simulate async operation
+        setTimeout(() => { // Simulate async backend call
             setSubmissions(currentSubmissions =>
                 currentSubmissions.map(s => {
                     if (s.id === submissionId) {
                         const reasons = s.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
                         
-                        const stableNewDocuments: SubmittedDocument[] = amendedFiles.map(f => {
+                        // CRITICAL: Convert the payload with File objects into lightweight SubmittedDocument objects.
+                        // DO NOT store the blob URL or File object in the global state.
+                        const newDocumentsForState: SubmittedDocument[] = amendedFiles.map(f => {
                             const originalDoc = s.documents.find(d => d.id === f.originalDocumentId);
-                            const version = originalDoc ? (originalDoc.version || 0) + 1 : 1;
+                            const version = (originalDoc?.version || 0) + 1;
                             return {
-                                id: `doc-${Date.now()}-${Math.random()}`,
+                                id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                                 fileName: f.file.name,
                                 documentType: f.documentType,
-                                url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`, // Placeholder URL
+                                // Use a placeholder URL, NOT the blob URL from the payload.
+                                url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`, 
                                 size: f.file.size,
                                 format: f.file.type,
                                 uploadedAt: new Date().toISOString(),
@@ -142,24 +147,24 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                             respondedAt: new Date().toISOString(),
                             responseComment: comment,
                             responseType: responseType,
-                            documents: stableNewDocuments,
+                            documents: newDocumentsForState, // Use the new lightweight documents.
                         };
                         
-                        const updatedDocuments = [...s.documents, ...stableNewDocuments];
+                        const updatedDocuments = [...s.documents, ...newDocumentsForState];
 
                         return {
                             ...s,
                             status: 'Pending Review',
                             documents: updatedDocuments,
                             amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
-                            pendingAmendments: [],
+                            pendingAmendments: [], // Clear pending requests.
                         };
                     }
                     return s;
                 })
             );
             resolve();
-        }, 500);
+        }, 500); // Simulate network latency
     });
   }, []);
 

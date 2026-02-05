@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -12,7 +11,7 @@ type InlineUploaderProps = {
   mode: 'REPLACE' | 'ADD';
   documentType: string;
   uploadedFile?: UploadedFile;
-  previewUrl?: string;
+  previewUrl?: string; // Expects a blob or data URL for previewing
   onFileUploaded: (file: File) => void;
   onFileRemoved: () => void;
 };
@@ -42,6 +41,7 @@ export function InlineUploader({
           <input
             type="file"
             className="hidden"
+            accept="image/*,.pdf"
             onChange={(e) => e.target.files && onFileUploaded(e.target.files[0])}
           />
           <span className="mt-2 text-sm text-muted-foreground">Click or drag file to upload</span>
