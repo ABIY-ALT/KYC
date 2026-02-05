@@ -86,14 +86,14 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                     documents: newDocumentForHistory ? [newDocumentForHistory] : [],
                 };
 
-                const updatedPendingAmendments = s.pendingAmendments?.filter(req => req.id !== amendmentRequestId);
+                const updatedPendingAmendments = (s.pendingAmendments || []).filter(req => req.id !== amendmentRequestId);
                 
                 return {
                     ...s,
                     documents: updatedDocuments,
                     amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
                     pendingAmendments: updatedPendingAmendments,
-                    status: updatedPendingAmendments?.length === 0 ? 'Pending Review' : s.status,
+                    status: updatedPendingAmendments.length === 0 ? 'Pending Review' : s.status,
                 };
             }
             return s;
