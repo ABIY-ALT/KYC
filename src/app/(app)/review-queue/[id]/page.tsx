@@ -194,33 +194,22 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                     <div className="lg:col-span-2 space-y-6">
                         <Card className="bg-destructive/10 border-destructive hover-lift">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><AlertCircle/> Amendment Requested for {submission.customerName}</CardTitle>
-                                <CardDescription>ID: {submission.id} | Branch: {submission.branch}</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><AlertCircle/> Step 1: Review Amendment Request</CardTitle>
+                                <CardDescription>The KYC officer has requested changes for submission {submission.id} ({submission.customerName}).</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <Label className="font-semibold">Reason from KYC Officer:</Label>
                                 <p className="text-destructive-foreground bg-destructive/20 p-3 rounded-md mt-2">{submission.amendmentReason}</p>
                             </CardContent>
                         </Card>
-                        
-                        <Card>
-                            <CardHeader><CardTitle>Original Documents (Read-Only)</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {submission.documents.map(doc => (
-                                     <div key={doc.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/50">
-                                         <div className="flex-shrink-0">{renderFilePreviewIcon(doc)}</div>
-                                         <div className="flex-1">
-                                            <p className="font-semibold">{doc.documentType}</p>
-                                            <p className="text-sm text-muted-foreground truncate">{doc.fileName}</p>
-                                         </div>
-                                         <a href={doc.url} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><Eye className="mr-2"/> View</Button></a>
-                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
 
                         <Card>
-                            <CardHeader><CardTitle>Respond to Amendment</CardTitle></CardHeader>
+                            <CardHeader>
+                                <CardTitle>Step 2: Upload Corrected Documents & Respond</CardTitle>
+                                <CardDescription>
+                                    This is where you upload the new files. Upload the corrected or additional documents as requested by the officer. You must also select a response type and add a comment.
+                                </CardDescription>
+                            </CardHeader>
                             <Form {...form}>
                             <form className="space-y-6 p-6 pt-0" onSubmit={(e) => e.preventDefault()}>
                                 <FormField control={form.control} name="responseType" render={({ field }) => (
@@ -272,6 +261,23 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                 <Button onClick={() => setIsConfirmOpen(true)}>Submit Amendment for Review</Button>
                             </CardFooter>
                         </Card>
+                        
+                        <Card>
+                            <CardHeader><CardTitle>Original Documents (Read-Only)</CardTitle></CardHeader>
+                            <CardContent className="space-y-4">
+                                {submission.documents.map(doc => (
+                                     <div key={doc.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/50">
+                                         <div className="flex-shrink-0">{renderFilePreviewIcon(doc)}</div>
+                                         <div className="flex-1">
+                                            <p className="font-semibold">{doc.documentType}</p>
+                                            <p className="text-sm text-muted-foreground truncate">{doc.fileName}</p>
+                                         </div>
+                                         <a href={doc.url} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><Eye className="mr-2"/> View</Button></a>
+                                     </div>
+                                ))}
+                            </CardContent>
+                        </Card>
+
                     </div>
                     <div className="lg:col-span-1 flex flex-col gap-6 sticky top-24">
                         <WorkflowStatus submission={submission} userRole={userRole} onApprove={()=>{}} onEscalate={()=>{}} onStatusChange={()=>{}}/>
@@ -379,5 +385,3 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
         </div>
     );
 }
-
-    
