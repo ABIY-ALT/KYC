@@ -10,40 +10,92 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle } from "lucide-react";
-import type { Submission } from "@/lib/data";
+import type { Submission, AmendmentRequest } from "@/lib/data";
 
-// The trigger is now a ReactNode that will be wrapped by DialogTrigger
-export function AmendmentDialog({ onStatusChange, submissionId, trigger }: { onStatusChange: (newStatus: Submission['status'], reason?: string) => void, submissionId: string, trigger?: React.ReactNode }) {
+const amendmentRequestSchema = z.object({
+  type: z.enum(['REPLACE_EXISTING', 'ADD_NEW']),
+  targetDocumentId: z.string().optional(),
+  targetDocumentType: z.string().min(1, "Document type is required"),
+  comment: z.string().min(10, "Comment must be at least 10 characters long."),
+}).refine(data => {
+    if (data.type === 'REPLACE_EXISTING') {
+        return !!data.targetDocumentId;
+    }
+    return true;
+}, {
+    message: "You must select an existing document to replace.",
+    path: ["targetDocumentId"],
+});
+
+type AmendmentRequestValues = z.infer<typeof amendmentRequestSchema>;
+
+type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
+
+interface AmendmentDialogProps {
+    onStatusChange: (newStatus: Submission['status'], request: NewAmendmentRequest) => void, 
+    submission: Submission, 
+    trigger?: React.ReactNode
+}
+
+export function AmendmentDialog({ onStatusChange, submission, trigger }: AmendmentDialogProps) {
     const { toast } = useToast();
-    const [reason, setReason] = useState("");
     const [isOpen, setIsOpen] = useState(false);
 
-    const handleSendRequest = () => {
-        if (reason.trim().length === 0) {
-            toast({
-                title: "Error",
-                description: "Please provide a reason for the amendment request.",
-                variant: "destructive",
-            });
-            return;
+    const form = useForm<AmendmentRequestValues>({
+        resolver: zodResolver(amendmentRequestSchema),
+        defaultValues: {
+            type: 'REPLACE_EXISTING',
+            comment: "",
+            targetDocumentType: "", // Set empty default for the new required field
+        },
+    });
+
+    const amendmentType = form.watch('type');
+
+    const handleSendRequest = (values: AmendmentRequestValues) => {
+        let requestPayload: NewAmendmentRequest = { ...values };
+
+        if (values.type === 'REPLACE_EXISTING' && values.targetDocumentId) {
+            const selectedDoc = submission.documents.find(d => d.id === values.targetDocumentId);
+            if(selectedDoc) {
+                requestPayload.targetDocumentType = selectedDoc.documentType;
+            }
         }
         
-        onStatusChange('Amendment', reason);
+        onStatusChange('Action Required', requestPayload);
         
         toast({
             title: "Request Sent",
             description: "An amendment request has been sent to the branch.",
         });
-        setReason("");
+        form.reset();
         setIsOpen(false);
     };
 
-    // The default trigger if none is provided
     const defaultTrigger = <Button variant="outline"><AlertTriangle /> Request Amendment</Button>;
 
     return (
@@ -51,30 +103,112 @@ export function AmendmentDialog({ onStatusChange, submissionId, trigger }: { onS
             <DialogTrigger asChild>
                 {trigger || defaultTrigger}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Request Amendment</DialogTitle>
                     <DialogDescription>
-                        Clearly explain what corrections are needed for this submission. The branch will be notified.
+                        Specify what changes are needed for submission ID: {submission.id}.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid w-full gap-1.5">
-                        <Label htmlFor="message">Reason for Amendment</Label>
-                        <Textarea
-                            placeholder="e.g., The provided ID is expired. Please upload a valid, non-expired ID."
-                            id="message"
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
+                <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSendRequest)} className="space-y-4">
+                    <FormField
+                        control={form.control}
+                        name="type"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <FormLabel>Amendment Type</FormLabel>
+                                <FormControl>
+                                    <RadioGroup
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        form.setValue('targetDocumentId', undefined);
+                                        form.setValue('targetDocumentType', '');
+                                        form.clearErrors();
+                                    }}
+                                    defaultValue={field.value}
+                                    className="flex flex-col space-y-1"
+                                    >
+                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                        <RadioGroupItem value="REPLACE_EXISTING" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                        Replace an Existing Document
+                                        </FormLabel>
+                                    </FormItem>
+                                    <FormItem className="flex items-center space-x-3 space-y-0">
+                                        <FormControl>
+                                        <RadioGroupItem value="ADD_NEW" />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                        Add a New Required Document
+                                        </FormLabel>
+                                    </FormItem>
+                                    </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    
+                    {amendmentType === 'REPLACE_EXISTING' && (
+                        <FormField
+                            control={form.control}
+                            name="targetDocumentId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Document to Replace</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a document..." /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {submission.documents.map(doc => (
+                                                <SelectItem key={doc.id} value={doc.id}>{doc.documentType} - {doc.fileName}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
                         />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" onClick={handleSendRequest}>Send Request</Button>
-                </DialogFooter>
+                    )}
+
+                    {amendmentType === 'ADD_NEW' && (
+                        <FormField
+                            control={form.control}
+                            name="targetDocumentType"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>New Document Type Required</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Proof of Address" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+
+                    <FormField
+                        control={form.control}
+                        name="comment"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Reason / Comment</FormLabel>
+                                <FormControl>
+                                    <Textarea placeholder="Explain why this amendment is necessary..." {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <DialogFooter>
+                        <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit">Send Request</Button>
+                    </DialogFooter>
+                </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );

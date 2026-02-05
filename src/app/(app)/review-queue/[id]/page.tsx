@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter, notFound, useParams } from 'next/navigation';
 import Image from "next/image";
 import { useSubmissions } from '@/context/submissions-context';
-import { type Submission, type SubmittedDocument, type User as UserData } from "@/lib/data";
+import { type Submission, type SubmittedDocument, type User as UserData, type AmendmentRequest } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -27,6 +27,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+
+type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
 
 const renderFilePreviewIcon = (file: SubmittedDocument) => {
     const fileType = file.format;
@@ -61,9 +63,9 @@ export default function SubmissionReviewPage() {
         setIsLoading(false);
     }, [params, submissions]);
     
-    const handleStatusChange = (newStatus: Submission['status'], reason?: string) => {
+    const handleStatusChange = (newStatus: Submission['status'], details?: string | NewAmendmentRequest) => {
         if (!submissionState) return;
-        updateSubmissionStatus(submissionState.id, newStatus, reason);
+        updateSubmissionStatus(submissionState.id, newStatus, details);
         setSubmissionState(prev => prev ? { ...prev, status: newStatus } : undefined);
         toast({
             title: `Status Updated: ${newStatus}`,

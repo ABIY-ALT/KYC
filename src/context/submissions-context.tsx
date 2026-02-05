@@ -3,10 +3,12 @@
 import { createContext, useContext, useState, type ReactNode, useCallback } from 'react';
 import { submissions as initialSubmissions, type Submission, type SubmittedDocument, type AmendmentRequest, type Amendment } from '@/lib/data';
 
+type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
+
 type SubmissionsContextType = {
   submissions: Submission[];
   addSubmission: (submission: Submission) => void;
-  updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], reason?: string) => void;
+  updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
   resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFile?: File) => void;
 };
 
@@ -19,23 +21,22 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
     setSubmissions(currentSubmissions => [submission, ...currentSubmissions]);
   }, []);
 
-  const updateSubmissionStatus = useCallback((submissionId: string, newStatus: Submission['status'], reason?: string) => {
+  const updateSubmissionStatus = useCallback((submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => {
     setSubmissions(currentSubmissions =>
       currentSubmissions.map(s => {
         if (s.id === submissionId) {
             const updatedSubmission: Submission = { ...s, status: newStatus };
-            if (newStatus === 'Action Required' && reason) {
+            
+            if (newStatus === 'Action Required' && details && typeof details !== 'string') {
                 const newRequest: AmendmentRequest = {
                   id: `amend-req-${Date.now()}`,
-                  type: 'REPLACE_EXISTING', // This is a default, a real app would need a UI for the officer to choose
-                  targetDocumentId: s.documents[0]?.id,
-                  targetDocumentType: s.documents[0]?.documentType || 'Unknown',
-                  comment: reason,
                   requestedAt: new Date().toISOString(),
-                  status: 'PENDING'
+                  status: 'PENDING',
+                  ...details
                 };
                 updatedSubmission.pendingAmendments = [...(s.pendingAmendments || []), newRequest];
             }
+
             return updatedSubmission;
         }
         return s;

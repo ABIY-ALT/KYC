@@ -11,7 +11,7 @@ import {
   History,
   FileSearch,
 } from 'lucide-react';
-import type { Submission } from '@/lib/data';
+import type { Submission, AmendmentRequest } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AmendmentDialog } from '@/components/amendment-dialog';
@@ -110,11 +110,13 @@ const getWorkflowSteps = (submission: Submission): WorkflowStepData[] => {
     return steps;
 };
 
+type NewAmendmentRequest = Omit<AmendmentRequest, 'id' | 'requestedAt' | 'status'>;
+
 interface WorkflowStatusProps {
     submission: Submission;
     onEscalate: () => void;
     onApprove: () => void;
-    onStatusChange: (newStatus: Submission['status'], reason?: string) => void;
+    onStatusChange: (newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
     userRole: 'Officer' | 'Supervisor' | 'Admin' | 'Branch Manager';
 }
 
@@ -152,7 +154,7 @@ export function WorkflowStatus({ submission, onEscalate, onApprove, onStatusChan
               <Send /> Escalate
             </button>
             <AmendmentDialog 
-              submissionId={submission.id}
+              submission={submission}
               onStatusChange={onStatusChange}
               trigger={
                 <button className="btn-request-amendment">
