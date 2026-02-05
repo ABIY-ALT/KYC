@@ -39,6 +39,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 
 const RESPONSE_TYPES = [
@@ -97,7 +98,7 @@ function InlineUploader({ originalDoc, onFileUploaded }: { originalDoc: Submitte
             <input {...getInputProps()} />
             <Button type="button" variant="outline" size="sm" onClick={open}>
                 <FileUp className="mr-2" />
-                {isDragActive ? 'Drop to Replace' : 'Replace File'}
+                {isDragActive ? 'Drop New Version' : 'Upload New Version'}
             </Button>
         </div>
     );
@@ -201,6 +202,29 @@ export default function SubmissionReviewPage() {
         setIsPreviewOpen(false);
     };
 
+    const documentsByType = useMemo(() => {
+        if (!submissionState) return [];
+        const initialDocs = submissionState.documents;
+        const amendmentDocs = (submissionState.amendmentHistory || []).flatMap(h => h.documents);
+        const allDocs = [...initialDocs, ...amendmentDocs];
+        
+        const grouped = allDocs.reduce((acc, doc) => {
+            const type = doc.documentType;
+            if (!acc[type]) {
+                acc[type] = [];
+            }
+            acc[type].push(doc);
+            return acc;
+        }, {} as Record<string, SubmittedDocument[]>);
+        
+        // Sort versions within each group
+        for (const type in grouped) {
+            grouped[type].sort((a, b) => (b.version || 1) - (a.version || 1));
+        }
+        
+        return Object.entries(grouped);
+    }, [submissionState]);
+
     if (isLoading) {
         return (
             <div>
@@ -228,11 +252,6 @@ export default function SubmissionReviewPage() {
     const userRole = userData?.role || 'Officer';
     const isBranchUser = userRole === 'Branch Manager' || userRole === 'Officer';
     
-    const allDocuments = [
-        ...submissionState.documents,
-        ...(submissionState.amendmentHistory || []).flatMap(h => h.documents)
-    ];
-
     const latestResponse = submissionState.amendmentHistory?.slice(-1)[0];
 
     // Branch user responding to an amendment request
@@ -268,10 +287,12 @@ export default function SubmissionReviewPage() {
                         <AlertTitle className="text-lg mb-2">Action Required: Amendment Requested</AlertTitle>
                         <AlertDescription className="space-y-2">
                             <p>A KYC officer has requested changes for this submission. Please review their comments and re-upload the corrected documents.</p>
-                            <div className="p-4 bg-background/50 rounded-md border border-destructive/20">
-                                <p className="font-semibold text-destructive-foreground">KYC Officer's Comment:</p>
-                                <p className="text-destructive-foreground/90 mt-1">"{submissionState.amendmentReason || 'No reason provided.'}"</p>
-                            </div>
+                             <Card className="bg-background/50 border-destructive/20">
+                                <CardHeader className="p-4">
+                                    <Label className="font-semibold text-muted-foreground">KYC Officer Comment</Label>
+                                    <p className="text-foreground bg-muted p-3 rounded-md mt-2">{submissionState.amendmentReason}</p>
+                                </CardHeader>
+                            </Card>
                              <p className="text-xs pt-2">Requested On: {format(new Date(submissionState.amendmentRequestedAt!), "PPP 'at' p")}</p>
                         </AlertDescription>
                     </Alert>
@@ -280,7 +301,7 @@ export default function SubmissionReviewPage() {
                          <CardHeader>
                             <CardTitle>Step 1: Upload Corrected Documents</CardTitle>
                             <CardDescription>
-                                Replace the documents that need correction. The status icon will turn green once a new file is uploaded for a row.
+                                Upload new versions for the documents that need correction. Previous versions are kept in the submission history.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -290,7 +311,7 @@ export default function SubmissionReviewPage() {
                                         <TableHead className="w-12">Status</TableHead>
                                         <TableHead>Document Name</TableHead>
                                         <TableHead className="text-center">Existing File</TableHead>
-                                        <TableHead className="w-[300px]">Action: Replace File</TableHead>
+                                        <TableHead className="w-[300px]">Action: Upload New Version</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -442,47 +463,53 @@ export default function SubmissionReviewPage() {
                         </Card>
                     )}
 
-                    {allDocuments.map((doc, index) => (
-                        <Card key={doc.id} className="hover-lift">
+                    {documentsByType.map(([type, docs]) => (
+                        <Card key={type} className="hover-lift">
                             <CardHeader>
-                                <div className="flex justify-between items-center">
-                                    <CardTitle className="flex items-center gap-2 text-xl">{doc.documentType}</CardTitle>
-                                    {doc.version && doc.version > 1 && <Badge variant="outline">Version {doc.version}</Badge>}
-                                </div>
-                                <CardDescription>{doc.fileName} - {(doc.size / 1024).toFixed(1)} KB</CardDescription>
+                                <CardTitle className="flex items-center gap-2 text-xl">{type}</CardTitle>
+                                <CardDescription>{docs.length} version(s) available. The latest version is at the top.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="relative aspect-video w-full bg-muted rounded-md overflow-hidden border">
-                                    {doc.format.startsWith('image/') ? (
-                                        <Image 
-                                            src={doc.url} 
-                                            alt={`Document for ${submissionState.customerName}`}
-                                            fill
-                                            style={{ objectFit: 'contain' }}
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                            data-ai-hint="document paper"
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-full">
-                                            <FileText className="h-16 w-16 text-muted-foreground" />
-                                            <p className="mt-2 text-muted-foreground">PDF Document</p>
+                            <CardContent className="space-y-2">
+                                {docs.map(doc => (
+                                    <div key={doc.id} className="p-3 border rounded-lg bg-muted/30">
+                                        <div className="flex justify-between items-center">
+                                            <div className="grid gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline">Version {doc.version || 1}</Badge>
+                                                    <p className="text-sm text-muted-foreground">{doc.fileName}</p>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground pl-1">{format(new Date(doc.uploadedAt), "PPP 'at' p")}</p>
+                                            </div>
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button className="mt-4"><Eye className="mr-2"/>View PDF</Button>
+                                                    <Button variant="outline" size="sm"><Eye className="mr-2"/>View</Button>
                                                 </DialogTrigger>
                                                 <DialogContent className="max-w-4xl h-[90vh]">
                                                     <DialogHeader>
                                                         <DialogTitle>{doc.fileName}</DialogTitle>
                                                         <DialogDescription>
-                                                          Viewing PDF document for {submissionState.customerName}.
+                                                            {type} (Version {doc.version || 1}) for {submissionState.customerName}.
                                                         </DialogDescription>
                                                     </DialogHeader>
-                                                    <iframe src={doc.url} className="w-full h-full rounded-md border" />
+                                                    <div className="relative h-full w-full bg-black/10 rounded-md mt-4">
+                                                        {doc.format.startsWith('image/') ? (
+                                                            <Image 
+                                                                src={doc.url} 
+                                                                alt={`Document for ${submissionState.customerName}`}
+                                                                fill
+                                                                style={{ objectFit: 'contain' }}
+                                                                sizes="90vw"
+                                                                data-ai-hint="document paper"
+                                                            />
+                                                        ) : (
+                                                            <iframe src={doc.url} className="w-full h-full rounded-md border" title={doc.fileName} />
+                                                        )}
+                                                    </div>
                                                 </DialogContent>
                                             </Dialog>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ))}
                             </CardContent>
                         </Card>
                     ))}
