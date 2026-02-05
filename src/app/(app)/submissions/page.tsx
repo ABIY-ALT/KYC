@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
 import { type Submission, type User as UserData } from "@/lib/data";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, AlertTriangle, FileClock, CheckCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +73,17 @@ export default function MySubmissionsPage() {
         return 'secondary';
     }
   };
+  
+  const getAmendmentStatusIcon = (status: Submission['status']) => {
+    switch (status) {
+        case 'Amendment':
+            return <AlertTriangle className="h-5 w-5 text-amber-500" title="Amendment Required" />;
+        case 'Amended - Pending Review':
+            return <CheckCircle2 className="h-5 w-5 text-green-500" title="Responded" />;
+        default:
+            return <span className="text-muted-foreground">-</span>;
+    }
+  };
 
   return (
     <Card className="hover-lift">
@@ -89,6 +100,7 @@ export default function MySubmissionsPage() {
               <TableHead>Customer</TableHead>
               <TableHead className="hidden md:table-cell">Branch</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Amendment Status</TableHead>
               <TableHead className="hidden md:table-cell">Submitted</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -109,6 +121,9 @@ export default function MySubmissionsPage() {
                   <Badge variant={getBadgeVariant(submission.status)}>
                     {submission.status}
                   </Badge>
+                </TableCell>
+                 <TableCell className="text-center">
+                    {getAmendmentStatusIcon(submission.status)}
                 </TableCell>
                 <TableCell className="hidden md:table-cell">
                   {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter, notFound } from 'next/navigation';
 import Image from "next/image";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -18,10 +18,9 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkflowStatus } from '@/components/workflow-status';
-import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertCircle, MessageSquareReply, CheckCircle } from "lucide-react";
+import { ArrowLeft, FileText, Eye, UploadCloud, XCircle, AlertTriangle, MessageSquareReply, CheckCircle, FileUp, FileClock, CheckCircle2 } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -30,46 +29,30 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const DOCUMENT_TYPES = [
-  'National ID',
-  'Passport',
-  'Business License',
-  'Memorandum of Association',
-  'Application Form',
-  'Supporting Document',
-];
 
 const RESPONSE_TYPES = [
-    'Correction Provided',
-    'Additional Information',
-    'Query to Officer',
+    'Fully Amended',
+    'Partially Amended',
+    'Unable to Amend'
 ];
 
 const fileSchema = z.object({
+  originalDocId: z.string(),
   file: z.instanceof(File),
   docType: z.string().min(1, "Please select a document type."),
-  id: z.string()
 });
 
 const amendmentSchema = z.object({
-  responseType: z.string().min(1, "Please select a response type."),
+  responseType: z.enum(['Fully Amended', 'Partially Amended', 'Unable to Amend']),
   comment: z.string().min(1, "A response message is required."),
-  files: z.array(fileSchema).nonempty("At least one corrected document is required."),
+  files: z.array(fileSchema).nonempty("At least one corrected document must be uploaded."),
 });
 
 type FormValues = z.infer<typeof amendmentSchema>;
@@ -85,6 +68,26 @@ const renderFilePreviewIcon = (file: File | SubmittedDocument) => {
     return <FileText className="h-10 w-10 text-muted-foreground" />
 }
 
+function InlineUploader({ originalDoc, onFileUploaded }: { originalDoc: SubmittedDocument, onFileUploaded: (file: File) => void }) {
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        if (acceptedFiles.length > 0) {
+            onFileUploaded(acceptedFiles[0]);
+        }
+    }, [onFileUploaded]);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false, accept: {'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf']} });
+
+    return (
+        <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
+            <input {...getInputProps()} />
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <UploadCloud className="h-5 w-5" />
+                <p className="text-sm">{isDragActive ? 'Drop file...' : 'Click or drag to replace'}</p>
+            </div>
+        </div>
+    );
+}
+
 export default function SubmissionReviewPage({ params }: { params: { id: string } }) {
     const { submissions, updateSubmissionStatus, submitAmendment } = useSubmissions();
     const { user: authUser } = useUser();
@@ -94,33 +97,50 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
 
     const router = useRouter();
     const { toast } = useToast();
-    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     
-    const submission = submissions.find(s => s.id === params.id);
+    // Local state for amendment mode
+    const [submissionState, setSubmissionState] = useState(submissions.find(s => s.id === params.id));
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(amendmentSchema),
-        defaultValues: { responseType: "", comment: "", files: [] },
+        defaultValues: { responseType: undefined, comment: "", files: [] },
     });
-    const { fields, append, remove } = useFieldArray({ control: form.control, name: "files" });
-    const onDrop = useCallback((acceptedFiles: File[]) => {
-        acceptedFiles.forEach(file => {
-        if (!fields.some(field => field.file.name === file.name && field.file.size === file.size)) {
-            append({ file, docType: "", id: Math.random().toString(36).substring(7) });
+
+    const { fields, append, remove, update } = useFieldArray({
+        control: form.control,
+        name: "files",
+        keyName: "formId",
+    });
+
+    const handleFileUploaded = (originalDocId: string, file: File) => {
+        const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+        const originalDoc = submissionState?.documents.find(d => d.id === originalDocId);
+        
+        const fileData = {
+            originalDocId: originalDocId,
+            file: file,
+            docType: originalDoc?.documentType || ''
+        };
+
+        if (existingIndex > -1) {
+            update(existingIndex, fileData);
+        } else {
+            append(fileData);
         }
-        });
-    }, [append, fields]);
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+        form.trigger("files"); // re-validate files array
+    };
     
-    if (!submission) {
+    if (!submissionState) {
         notFound();
     }
     
     const handleStatusChange = (newStatus: Submission['status'], reason?: string) => {
-        updateSubmissionStatus(submission.id, newStatus, reason);
+        updateSubmissionStatus(submissionState.id, newStatus, reason);
+        setSubmissionState(prev => prev ? { ...prev, status: newStatus } : undefined);
         toast({
             title: `Status Updated: ${newStatus}`,
-            description: `Submission for ${submission.customerName} is now ${newStatus}.`,
+            description: `Submission for ${submissionState.customerName} is now ${newStatus}.`,
             variant: newStatus.includes('Approved') ? 'default' : newStatus.includes('Reject') || newStatus.includes('Escalate') ? 'destructive' : 'default'
         });
         if (newStatus === 'Approved' || newStatus === 'Rejected') {
@@ -129,160 +149,216 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
     };
 
     const handleAmendmentSubmit = (data: FormValues) => {
-        const newDocuments: SubmittedDocument[] = data.files.map((f, index) => ({
-            id: `doc-${Date.now()}-${index}`,
-            fileName: f.file.name,
-            documentType: f.docType,
-            url: URL.createObjectURL(f.file),
-            size: f.file.size,
-            format: f.file.type,
-            uploadedAt: new Date().toISOString(),
-            version: (submission.amendmentHistory?.length || 0) + 2
-        }));
-
-        submitAmendment(submission.id, newDocuments, data.comment, data.responseType);
-        
-        toast({
-            title: "Amendment Submitted",
-            description: `Corrected documents for ${submission.customerName} have been sent for re-review.`,
+        const newDocuments: SubmittedDocument[] = data.files.map((f, index) => {
+             const originalDoc = submissionState.documents.find(d => d.id === f.originalDocId);
+             return {
+                id: `doc-${Date.now()}-${index}`,
+                fileName: f.file.name,
+                documentType: f.docType,
+                url: URL.createObjectURL(f.file),
+                size: f.file.size,
+                format: f.file.type,
+                uploadedAt: new Date().toISOString(),
+                version: (originalDoc?.version || 1) + 1
+             }
         });
 
-        router.push('/submissions');
-        setIsConfirmOpen(false);
+        submitAmendment(submissionState.id, newDocuments, data.comment, data.responseType);
+        
+        // Update local state to reflect submission
+        setSubmissionState(prev => prev ? { ...prev, status: 'Amended - Pending Review' } : undefined);
+
+        toast({
+            title: "Amendment Submitted",
+            description: `Corrected documents for ${submissionState.customerName} have been sent for re-review.`,
+        });
+
+        setIsPreviewOpen(false);
     };
 
     const handleApprove = () => handleStatusChange('Approved');
     const handleEscalate = () => handleStatusChange('Escalated');
 
-    // Determine user role - default to officer if not loaded
     const userRole = userData?.role || 'Officer';
-    const isReviewerUser = userRole === 'Supervisor' || userRole === 'Admin' || userRole === 'Officer';
     const isBranchUser = userRole === 'Branch Manager' || userRole === 'Officer';
-
-    // Combine original and amended documents for review
+    
     const allDocuments = [
-        ...submission.documents,
-        ...(submission.amendmentHistory || []).flatMap(h => h.documents)
+        ...submissionState.documents,
+        ...(submissionState.amendmentHistory || []).flatMap(h => h.documents)
     ];
 
-    const latestResponse = submission.amendmentHistory?.slice(-1)[0];
+    const latestResponse = submissionState.amendmentHistory?.slice(-1)[0];
 
     // Branch user responding to an amendment request
-    if (isBranchUser && submission.status === 'Amendment') {
-        const requestDate = submission.amendmentRequestedAt ? format(new Date(submission.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
+    if (isBranchUser && (submissionState.status === 'Amendment' || submissionState.status === 'Amended - Pending Review')) {
+        const requestDate = submissionState.amendmentRequestedAt ? format(new Date(submissionState.amendmentRequestedAt), 'dd/MM/yyyy') : 'a recent date';
         const placeholderTemplate = `All requested amendments have been completed. The corrected document(s) have been re-uploaded as per your comment dated ${requestDate}. Please proceed with review.`;
 
+        // POST-SUBMISSION VIEW
+        if (submissionState.status === 'Amended - Pending Review') {
+             return (
+                 <div>
+                    <Button variant="outline" onClick={() => router.push('/submissions')} className="mb-6"><ArrowLeft /> Back to Submissions</Button>
+                    <Alert variant="default" className="mb-6 bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        <AlertTitle className="text-green-800 dark:text-green-400">Amendment Response Submitted</AlertTitle>
+                        <AlertDescription className="text-green-700 dark:text-green-500">
+                            Your response has been sent to the KYC Officer for review. No further actions are required from your side at this time.
+                        </AlertDescription>
+                    </Alert>
+                    <Card><CardHeader><CardTitle>Submission Details (Read-Only)</CardTitle></CardHeader></Card>
+                 </div>
+             )
+        }
+
+        // AMENDMENT MODE VIEW
         return (
             <div>
-                 <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-                    <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Amendment Submission</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          By submitting this amendment, you confirm that all requested corrections have been completed. This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={form.handleSubmit(handleAmendmentSubmit)}>Confirm & Submit</AlertDialogAction>
-                    </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                 <Button variant="outline" onClick={() => router.back()} className="mb-6"><ArrowLeft /> Back</Button>
+                
+                <Alert variant="destructive" className="mb-6 sticky top-20 z-20">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Amendment Requested by KYC Officer</AlertTitle>
+                    <AlertDescription>
+                        Status: Action Required. Requested On: {format(new Date(submissionState.amendmentRequestedAt!), "PPP 'at' p")}
+                    </AlertDescription>
+                </Alert>
 
-                <Button variant="outline" onClick={() => router.back()} className="mb-6"><ArrowLeft /> Back</Button>
-                <div className="grid lg:grid-cols-3 gap-6 items-start">
-                    <div className="lg:col-span-2 space-y-6">
-                        <Card className="bg-destructive/10 border-destructive hover-lift">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><AlertCircle/> Step 1: Review Amendment Request</CardTitle>
-                                <CardDescription>The KYC officer has requested changes for submission {submission.id} ({submission.customerName}).</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Label className="font-semibold">Reason from KYC Officer:</Label>
-                                <p className="text-destructive-foreground bg-destructive/20 p-3 rounded-md mt-2">{submission.amendmentReason}</p>
-                            </CardContent>
-                        </Card>
+                <div className="space-y-8">
+                    <Card className="hover-lift">
+                        <CardHeader>
+                            <CardTitle>Amendment Request Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Label className="font-semibold text-muted-foreground">KYC Officer Comment</Label>
+                            <p className="text-foreground bg-muted p-3 rounded-md mt-2">{submissionState.amendmentReason}</p>
+                        </CardContent>
+                    </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Step 2: Upload Corrected Documents & Respond</CardTitle>
-                                <CardDescription>
-                                    This is where you upload the new files. Upload the corrected or additional documents as requested by the officer. You must also select a response type and add a comment.
-                                </CardDescription>
-                            </CardHeader>
-                            <Form {...form}>
-                            <form className="space-y-6 p-6 pt-0" onSubmit={(e) => e.preventDefault()}>
-                                <FormField control={form.control} name="responseType" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Response Type</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select a response type" /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {RESPONSE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="comment" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Response Message</FormLabel>
-                                        <FormControl><Textarea placeholder={placeholderTemplate} {...field} rows={4} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                 )} />
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Required Documents</CardTitle>
+                            <CardDescription>
+                                Replace or re-upload the documents that need correction.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12">Status</TableHead>
+                                        <TableHead>Document Name</TableHead>
+                                        <TableHead className="hidden md:table-cell">Issue Description</TableHead>
+                                        <TableHead className="text-center">Existing File</TableHead>
+                                        <TableHead className="w-[300px]">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {submissionState.documents.map(doc => {
+                                        const isAmended = fields.some(f => f.originalDocId === doc.id);
+                                        const amendedFile = fields.find(f => f.originalDocId === doc.id)?.file;
 
-                                <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
-                                    <input {...getInputProps()} />
-                                    <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
-                                    <p className="mt-4 text-muted-foreground">{isDragActive ? 'Drop files here...' : 'Drag & drop corrected files here, or click'}</p>
-                                </div>
+                                        return (
+                                            <TableRow key={doc.id}>
+                                                <TableCell className="text-center">
+                                                    {isAmended ? <CheckCircle className="h-5 w-5 text-green-500" /> : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                                                </TableCell>
+                                                <TableCell className="font-medium">{doc.documentType}</TableCell>
+                                                <TableCell className="text-muted-foreground hidden md:table-cell">{submissionState.amendmentReason}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="ghost" size="sm"><Eye className="mr-2"/> View</Button>
+                                                    </a>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {amendedFile ? (
+                                                        <div className="flex items-center gap-2 p-1 rounded-md border bg-muted/50">
+                                                            <FileText className="h-5 w-5 flex-shrink-0" />
+                                                            <p className="text-sm truncate flex-1">{amendedFile.name}</p>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove(fields.findIndex(f => f.originalDocId === doc.id))}>
+                                                                <XCircle className="h-4 w-4 text-destructive" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <InlineUploader originalDoc={doc} onFileUploaded={(file) => handleFileUploaded(doc.id, file)} />
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
 
-                                {fields.length > 0 && (
-                                    <ScrollArea className="h-60 w-full rounded-md border p-4 space-y-4">
-                                    {fields.map((field, index) => (
-                                    <div key={field.id} className="flex items-center gap-4">
-                                        <div className="flex-shrink-0">{renderFilePreviewIcon(field.file)}</div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium truncate">{field.file.name}</p>
-                                            <p className="text-xs text-muted-foreground">{(field.file.size / 1024).toFixed(1)} KB</p>
-                                        </div>
-                                        <FormField control={form.control} name={`files.${index}.docType`} render={({ field: selectField }) => (
-                                            <FormItem className="w-56"><Select onValueChange={selectField.onChange} defaultValue={selectField.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent>{DOCUMENT_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}</SelectContent></Select></FormItem>
-                                        )} />
-                                        <Button variant="ghost" size="icon" onClick={() => remove(index)}><XCircle className="h-5 w-5 text-destructive" /></Button>
-                                    </div>
-                                    ))}
-                                    </ScrollArea>
-                                )}
-                            </form>
-                            </Form>
-                             <CardFooter>
-                                <Button onClick={() => setIsConfirmOpen(true)}>Submit Amendment for Review</Button>
-                            </CardFooter>
-                        </Card>
-                        
-                        <Card>
-                            <CardHeader><CardTitle>Original Documents (Read-Only)</CardTitle></CardHeader>
-                            <CardContent className="space-y-4">
-                                {submission.documents.map(doc => (
-                                     <div key={doc.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/50">
-                                         <div className="flex-shrink-0">{renderFilePreviewIcon(doc)}</div>
-                                         <div className="flex-1">
-                                            <p className="font-semibold">{doc.documentType}</p>
-                                            <p className="text-sm text-muted-foreground truncate">{doc.fileName}</p>
-                                         </div>
-                                         <a href={doc.url} target="_blank" rel="noopener noreferrer"><Button variant="outline" size="sm"><Eye className="mr-2"/> View</Button></a>
-                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-
-                    </div>
-                    <div className="lg:col-span-1 flex flex-col gap-6 sticky top-24">
-                        <WorkflowStatus submission={submission} userRole={userRole} onApprove={()=>{}} onEscalate={()=>{}} onStatusChange={()=>{}}/>
-                    </div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Branch Amendment Response</CardTitle>
+                        </CardHeader>
+                        <Form {...form}>
+                        <form className="space-y-6 p-6 pt-0">
+                             <FormField control={form.control} name="responseType" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Response Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Select a response type" /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            {RESPONSE_TYPES.map(type => <SelectItem key={type} value={type as any}>{type}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                             <FormField control={form.control} name="comment" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Message to KYC Officer</FormLabel>
+                                    <FormControl><Textarea placeholder={placeholderTemplate} {...field} rows={4} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                        </form>
+                        </Form>
+                    </Card>
                 </div>
+
+                {/* Sticky Action Bar */}
+                 <div className="sticky bottom-0 bg-background/95 py-4 border-t mt-8 z-10">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsPreviewOpen(true)}>Preview All Amendments</Button>
+                        <Button onClick={form.handleSubmit(handleAmendmentSubmit)} disabled={!form.formState.isValid}>Submit Amendment Response</Button>
+                    </div>
+                 </div>
+
+                 <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Preview Amendment Response</DialogTitle>
+                            <DialogDescription>Review your changes before sending them to the KYC Officer. This action cannot be undone.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+                             <Card><CardHeader className="p-4"><CardTitle className="text-lg">Branch Response</CardTitle></CardHeader>
+                                <CardContent className="space-y-2 p-4 pt-0">
+                                    <p><span className="font-semibold">Response Type:</span> {form.getValues('responseType')}</p>
+                                    <p className="text-muted-foreground whitespace-pre-wrap">{form.getValues('comment')}</p>
+                                </CardContent>
+                             </Card>
+                             <Card><CardHeader className="p-4"><CardTitle className="text-lg">Amended Documents</CardTitle></CardHeader>
+                                <CardContent className="p-4 pt-0 space-y-2">
+                                     {fields.map(f => (
+                                         <div key={f.id} className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                                            {renderFilePreviewIcon(f.file)}
+                                            <div className="flex-1"><p className="font-medium">{f.docType}</p><p className="text-sm text-muted-foreground">{f.file.name}</p></div>
+                                         </div>
+                                     ))}
+                                </CardContent>
+                             </Card>
+                        </div>
+                        <DialogFooter className="mt-4">
+                            <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>Cancel</Button>
+                            <Button onClick={form.handleSubmit(handleAmendmentSubmit)}>Confirm & Submit</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                 </Dialog>
             </div>
         );
     }
@@ -297,12 +373,12 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                 <div className="lg:col-span-2 space-y-6">
                      <Card className="hover-lift">
                         <CardHeader>
-                            <CardTitle className="gradient-text">Reviewing Submission for {submission.customerName}</CardTitle>
-                            <CardDescription>ID: {submission.id} | Branch: {submission.branch}</CardDescription>
+                            <CardTitle className="gradient-text">Reviewing Submission for {submissionState.customerName}</CardTitle>
+                            <CardDescription>ID: {submissionState.id} | Branch: {submissionState.branch}</CardDescription>
                         </CardHeader>
                     </Card>
 
-                    {submission.status === 'Amended - Pending Review' && latestResponse && (
+                    {submissionState.status === 'Amended - Pending Review' && latestResponse && (
                          <Card className="hover-lift bg-primary/5 border-primary">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-xl"><MessageSquareReply /> Branch Response</CardTitle>
@@ -341,7 +417,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                     {doc.format.startsWith('image/') ? (
                                         <Image 
                                             src={doc.url} 
-                                            alt={`Document for ${submission.customerName}`}
+                                            alt={`Document for ${submissionState.customerName}`}
                                             fill
                                             style={{ objectFit: 'contain' }}
                                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -359,7 +435,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                                                     <DialogHeader>
                                                         <DialogTitle>{doc.fileName}</DialogTitle>
                                                         <DialogDescription>
-                                                          Viewing PDF document for {submission.customerName}.
+                                                          Viewing PDF document for {submissionState.customerName}.
                                                         </DialogDescription>
                                                     </DialogHeader>
                                                     <iframe src={doc.url} className="w-full h-full rounded-md border" />
@@ -374,7 +450,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
                 </div>
                 <div className="lg:col-span-1 flex flex-col gap-6 sticky top-24">
                    <WorkflowStatus 
-                        submission={submission}
+                        submission={submissionState}
                         onApprove={handleApprove}
                         onEscalate={handleEscalate}
                         onStatusChange={handleStatusChange}
