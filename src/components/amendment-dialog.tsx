@@ -17,7 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle } from "lucide-react";
 import type { Submission } from "@/lib/data";
 
-export function AmendmentDialog({ onStatusChange, submissionId }: { onStatusChange: (newStatus: Submission['status']) => void, submissionId: string }) {
+// The trigger is now a ReactNode that will be wrapped by DialogTrigger
+export function AmendmentDialog({ onStatusChange, submissionId, trigger }: { onStatusChange: (newStatus: Submission['status']) => void, submissionId: string, trigger?: React.ReactNode }) {
     const { toast } = useToast();
     const [reason, setReason] = useState("");
     const [isOpen, setIsOpen] = useState(false);
@@ -42,10 +43,13 @@ export function AmendmentDialog({ onStatusChange, submissionId }: { onStatusChan
         setIsOpen(false);
     };
 
+    // The default trigger if none is provided
+    const defaultTrigger = <Button variant="outline"><AlertTriangle /> Request Amendment</Button>;
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline"><AlertTriangle /> Request Amendment</Button>
+                {trigger || defaultTrigger}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>

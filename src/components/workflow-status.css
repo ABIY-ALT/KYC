@@ -1,0 +1,248 @@
+.workflow-container {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+  margin: 20px 0;
+}
+
+.workflow-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.workflow-title h3 {
+  color: #2c3e50;
+  font-size: 22px;
+  margin: 0;
+}
+
+.workflow-time {
+  color: #7f8c8d;
+  font-size: 14px;
+  background: #f8f9fa;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.workflow-timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.workflow-step {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.step-indicator {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+.workflow-step.completed .step-indicator {
+  background: linear-gradient(135deg, #00b894, #00a085);
+  color: white;
+  animation: pulseComplete 2s infinite;
+}
+
+.workflow-step.active .step-indicator {
+  background: linear-gradient(135deg, #4a6cf7, #8a2be2);
+  color: white;
+  box-shadow: 0 0 0 10px rgba(74, 108, 247, 0.1);
+  animation: pulseActive 1.5s infinite;
+}
+
+.workflow-step.pending .step-indicator {
+  background: #f8f9fa;
+  color: #b2bec3;
+  border: 2px solid #dfe6e9;
+}
+
+.step-content {
+  flex-grow: 1;
+  padding-top: 5px;
+}
+
+.step-title {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 5px;
+  font-size: 18px;
+}
+
+.step-time {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.step-details {
+  color: #636e72;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.step-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.step-badge.reviewing {
+  background: rgba(74, 108, 247, 0.1);
+  color: #4a6cf7;
+  animation: fadeInOut 2s infinite;
+}
+
+.step-connector {
+  position: absolute;
+  left: 25px;
+  top: 50px;
+  width: 2px;
+  height: calc(100% + 20px);
+  background: #dfe6e9;
+  z-index: 1;
+}
+
+.workflow-step:last-child .step-connector {
+  display: none;
+}
+
+.workflow-step.completed .step-connector {
+  background: #00b894;
+}
+
+.workflow-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-escalate, .btn-request-amendment, .btn-approve {
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-escalate {
+  background: rgba(253, 203, 110, 0.1);
+  color: #e17055;
+  border: 1px solid rgba(225, 112, 85, 0.2);
+}
+
+.btn-request-amendment {
+  background: rgba(116, 185, 255, 0.1);
+  color: #0984e3;
+  border: 1px solid rgba(9, 132, 227, 0.2);
+}
+
+.btn-approve {
+  background: rgba(0, 184, 148, 0.1);
+  color: #00b894;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+.btn-escalate:hover {
+  background: rgba(225, 112, 85, 0.2);
+  transform: translateY(-2px);
+}
+
+.btn-request-amendment:hover {
+  background: rgba(9, 132, 227, 0.2);
+  transform: translateY(-2px);
+}
+
+.btn-approve:hover {
+  background: rgba(0, 184, 148, 0.2);
+  transform: translateY(-2px);
+}
+
+@keyframes pulseComplete {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
+}
+
+@keyframes pulseActive {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 108, 247, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(74, 108, 247, 0); }
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Dark mode adjustments */
+.dark .workflow-container {
+  background: hsl(var(--card));
+  box-shadow: none;
+  border: 1px solid hsl(var(--border));
+}
+
+.dark .workflow-title {
+  border-bottom-color: hsl(var(--border));
+}
+
+.dark .workflow-title h3 {
+  color: hsl(var(--card-foreground));
+}
+
+.dark .workflow-time {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .workflow-step.pending .step-indicator {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .step-content {
+  color: hsl(var(--card-foreground));
+}
+.dark .step-title {
+  color: hsl(var(--card-foreground));
+}
+
+.dark .step-time,
+.dark .step-details {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .step-connector {
+  background: hsl(var(--border));
+}
+
+.dark .workflow-step.completed .step-connector {
+  background: #00b894;
+}
+
+.dark .workflow-actions {
+  border-top-color: hsl(var(--border));
+}
