@@ -133,54 +133,41 @@ export default function AmendSubmissionPage() {
     };
     
     const handleAmendmentSubmit = async (data: FormValues) => {
-        if (!submission || !submission.pendingAmendments) return;
-        
-        try {
-            form.setValue("submitting", true);
-
-            const newDocuments: SubmittedDocument[] = data.amendedFiles.map((f, index) => {
-                const amendment = submission.pendingAmendments?.find(
-                    a => a.id === f.amendmentRequestId
-                );
-
-                const originalDoc =
-                    amendment?.type === "REPLACE_EXISTING"
-                    ? submission.documents.find(d => d.id === f.originalDocumentId)
-                    : undefined;
-                
-                // CRITICAL: Use a placeholder URL, not the large Data URL from the form state.
-                const stableUrl = `https://picsum.photos/seed/newdoc${Date.now()}${index}/800/1100`;
-
-                return {
-                    id: `doc-${Date.now()}-${index}`,
-                    fileName: f.file.name,
-                    documentType: f.documentType,
-                    url: stableUrl,
-                    size: f.file.size,
-                    format: f.file.type,
-                    uploadedAt: new Date().toISOString(),
-                    version: originalDoc ? (originalDoc.version || 1) + 1 : 1,
-                };
-            });
-
-            await submitAmendment(submission.id, newDocuments, data.responseComment, 'Fully Amended');
-
-            toast({
-                title: "Amendment Response Sent",
-                description: "Your response has been sent to the KYC officer for review.",
-            });
-
-            setTimeout(() => router.push('/submissions'), 100);
-
-        } catch (err) {
-            toast({
-                variant: "destructive",
-                title: "Submission Failed",
-                description: "Something went wrong, please try again.",
-            });
-        } finally {
-            form.setValue("submitting", false);
-        }
+      if (!submission) return;
+    
+      try {
+        // Disable button while processing
+        form.setValue("submitting", true);
+    
+        const amendedDocs = data.amendedFiles.map((f, i) => ({
+          id: `doc-${Date.now()}-${i}`,
+          fileName: f.file.name,
+          documentType: f.documentType,
+          url: f.file.url,
+          size: f.file.size,
+          format: f.file.type,
+          uploadedAt: new Date().toISOString(),
+          version: (submission.documents.find(d => d.id === f.originalDocumentId)?.version || 0) + 1,
+        }));
+    
+        await submitAmendment(submission.id, amendedDocs, data.responseComment, 'Fully Amended');
+    
+        toast({
+          title: "Amendment Response Sent",
+          description: "Your response has been sent to the KYC officer for review.",
+        });
+    
+        // Slight delay to ensure React flushes updates
+        setTimeout(() => router.push('/submissions'), 100);
+      } catch (err) {
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "Something went wrong, please try again.",
+        });
+      } finally {
+        form.setValue("submitting", false);
+      }
     };
     
     if (isLoading) {
