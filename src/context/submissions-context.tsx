@@ -70,7 +70,7 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
                         id: `doc-${Date.now()}`,
                         fileName: newFileData.name,
                         documentType: request.targetDocumentType,
-                        url: newFileData.url,
+                        url: `https://picsum.photos/seed/doc${Date.now()}/800/1100`,
                         size: newFileData.size,
                         format: newFileData.type,
                         uploadedAt: new Date().toISOString(),
@@ -107,37 +107,49 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const submitAmendment = useCallback(async (submissionId: string, newDocuments: SubmittedDocument[], comment: string, responseType: string): Promise<void> => {
-    setSubmissions(currentSubmissions =>
-        currentSubmissions.map(s => {
-            if (s.id === submissionId) {
-                // This combines all pending requests into a single history entry.
-                const reasons = s.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
-                
-                const newHistoryEntry: Amendment = {
-                    requestedAt: s.pendingAmendments?.[0]?.requestedAt || new Date().toISOString(),
-                    requestedBy: s.officer,
-                    reason: reasons,
-                    respondedAt: new Date().toISOString(),
-                    responseComment: comment,
-                    responseType: responseType,
-                    documents: newDocuments,
-                };
-                
-                const updatedDocuments = [...s.documents, ...newDocuments];
+    return new Promise(resolve => {
+        setSubmissions(currentSubmissions =>
+            currentSubmissions.map(s => {
+                if (s.id === submissionId) {
+                    const reasons = s.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
+                    
+                    const stableNewDocuments = newDocuments.map(doc => {
+                        if (doc.url.startsWith('blob:')) {
+                            URL.revokeObjectURL(doc.url);
+                        }
+                        return {
+                            ...doc,
+                            url: `https://picsum.photos/seed/doc${Date.now()}/800/1100`
+                        };
+                    });
+                    
+                    const newHistoryEntry: Amendment = {
+                        requestedAt: s.pendingAmendments?.[0]?.requestedAt || new Date().toISOString(),
+                        requestedBy: s.officer,
+                        reason: reasons,
+                        respondedAt: new Date().toISOString(),
+                        responseComment: comment,
+                        responseType: responseType,
+                        documents: stableNewDocuments,
+                    };
+                    
+                    const updatedDocuments = [...s.documents, ...stableNewDocuments];
 
-                const updatedSubmission: Submission = {
-                    ...s,
-                    status: 'Pending Review',
-                    documents: updatedDocuments,
-                    amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
-                    pendingAmendments: [], // All pending requests are considered resolved
-                };
+                    const updatedSubmission: Submission = {
+                        ...s,
+                        status: 'Pending Review',
+                        documents: updatedDocuments,
+                        amendmentHistory: [...(s.amendmentHistory || []), newHistoryEntry],
+                        pendingAmendments: [],
+                    };
 
-                return updatedSubmission;
-            }
-            return s;
-        })
-    );
+                    return updatedSubmission;
+                }
+                return s;
+            })
+        );
+        resolve();
+    });
   }, []);
 
 

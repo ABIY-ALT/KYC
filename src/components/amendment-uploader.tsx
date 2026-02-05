@@ -1,13 +1,16 @@
 
 "use client";
 
-import { File as FileIcon } from "lucide-react";
+import Image from "next/image";
+import { File as FileIcon, UploadCloud } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 type UploadedFile = {
   name: string;
   size: number;
   type: string;
-  url: string; // Data URL for preview
+  url: string; // Object URL for preview
 };
 
 type InlineUploaderProps = {
@@ -26,7 +29,7 @@ export function InlineUploader({
   onFileRemoved,
 }: InlineUploaderProps) {
   return (
-    <div className="border rounded-md p-3 bg-muted/40 space-y-2">
+    <div className="border rounded-md p-3 bg-muted/40 space-y-2 hover-lift">
       <div>
         <p className="font-medium">{documentType}</p>
         <p className="text-xs text-muted-foreground">
@@ -37,36 +40,39 @@ export function InlineUploader({
       </div>
 
       {!uploadedFile ? (
-        <label className="flex justify-center items-center border-2 border-dashed rounded-md p-4 cursor-pointer hover:bg-muted">
+        <label className="flex flex-col justify-center items-center border-2 border-dashed rounded-md p-4 cursor-pointer hover:bg-muted transition-colors">
+          <UploadCloud className="h-8 w-8 text-muted-foreground" />
           <input
             type="file"
             className="hidden"
             onChange={(e) => e.target.files && onFileUploaded(e.target.files[0])}
           />
-          <span className="text-sm text-muted-foreground">Click to upload</span>
+          <span className="mt-2 text-sm text-muted-foreground">Click or drag file to upload</span>
         </label>
       ) : (
-        <div className="flex justify-between items-center bg-background p-2 rounded">
-          <div className="flex items-center gap-2">
+        <div className="flex justify-between items-center bg-background p-2 rounded border">
+          <div className="flex items-center gap-2 overflow-hidden">
              {uploadedFile.type.startsWith("image/") ? (
-                <img src={uploadedFile.url} alt={uploadedFile.name} className="h-10 w-10 object-cover rounded-sm" />
+                <Image src={uploadedFile.url} alt={uploadedFile.name} width={40} height={40} className="h-10 w-10 object-cover rounded-sm flex-shrink-0" />
              ) : (
-                <FileIcon className="h-10 w-10 text-muted-foreground" />
+                <FileIcon className="h-10 w-10 text-muted-foreground flex-shrink-0" />
              )}
-             <div>
-                <p className="text-sm font-medium">{uploadedFile.name}</p>
+             <div className="truncate">
+                <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
                 <p className="text-xs text-muted-foreground">
                 {(uploadedFile.size / 1024).toFixed(1)} KB
                 </p>
              </div>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onFileRemoved}
-            className="text-xs text-destructive hover:underline"
+            className="text-destructive hover:text-destructive"
           >
             Remove
-          </button>
+          </Button>
         </div>
       )}
     </div>
