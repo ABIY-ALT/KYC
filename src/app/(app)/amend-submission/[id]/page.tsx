@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useParams, notFound } from 'next/navigation';
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,29 +61,13 @@ export default function AmendSubmissionPage() {
         resolver: zodResolver(amendmentSchema),
         defaultValues: { responseType: undefined, comment: "", files: [] },
     });
-    
-    // This effect ensures that any generated Object URLs are revoked when the component unmounts, preventing memory leaks.
-    useEffect(() => {
-        // This function will be called when the component unmounts
-        return () => {
-            const filesInForm = form.getValues('files');
-            filesInForm.forEach(fileWrapper => {
-                if (fileWrapper.file.dataUrl) {
-                    URL.revokeObjectURL(fileWrapper.file.dataUrl);
-                }
-            });
-        };
-    }, [form]);
-
 
     useEffect(() => {
         if (params.id) {
             const sub = submissions.find(s => s.id === params.id);
-            // This page is only for submissions that require amendment.
             if (sub && sub.status === 'Action Required') {
                 setSubmission(sub);
             } else if (sub) {
-                // If the submission exists but is not in the correct status, redirect.
                 router.replace('/submissions');
             }
         }
@@ -100,45 +84,61 @@ export default function AmendSubmissionPage() {
     });
 
     const handleFileUploaded = (originalDocId: string, uploadedFile: File) => {
-        // Use URL.createObjectURL for efficiency. It creates a temporary, short URL
-        // representing the file in the browser's memory, avoiding large Data URLs.
-        const objectUrl = URL.createObjectURL(uploadedFile);
-
-        const originalDoc = submission?.documents.find(d => d.id === originalDocId);
-
-        const fileData = {
-            originalDocId: originalDocId,
-            file: {
-                name: uploadedFile.name,
-                type: uploadedFile.type,
-                size: uploadedFile.size,
-                dataUrl: objectUrl,
-            },
-            docType: originalDoc?.documentType || ''
-        };
-        
-        const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
-
-        if (existingIndex > -1) {
-            // Before replacing, revoke the old URL to prevent memory leaks
-            const oldUrl = fields[existingIndex].file.dataUrl;
-            URL.revokeObjectURL(oldUrl);
-            update(existingIndex, fileData);
-        } else {
-            append(fileData);
+        if (uploadedFile.size > 5 * 1024 * 1024) { // 5MB limit
+            toast({
+                variant: "destructive",
+                title: "File too large",
+                description: "Please upload files smaller than 5MB.",
+            });
+            return;
         }
-        form.trigger("files");
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+
+            const originalDoc = submission?.documents.find(d => d.id === originalDocId);
+
+            const fileData = {
+                originalDocId: originalDocId,
+                file: {
+                    name: uploadedFile.name,
+                    type: uploadedFile.type,
+                    size: uploadedFile.size,
+                    dataUrl: dataUrl, // Use stable Data URL
+                },
+                docType: originalDoc?.documentType || ''
+            };
+            
+            const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+
+            if (existingIndex > -1) {
+                update(existingIndex, fileData);
+            } else {
+                append(fileData);
+            }
+            form.trigger("files");
+        };
+        reader.readAsDataURL(uploadedFile);
+    };
+
+    const handleFileRemoved = (originalDocId: string) => {
+        const fieldIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+        if (fieldIndex > -1) {
+            remove(fieldIndex);
+        }
     };
     
     const handleAmendmentSubmit = (data: FormValues) => {
         if (!submission) return;
+        
         const newDocuments: SubmittedDocument[] = data.files.map((f, index) => {
              const originalDoc = submission.documents.find(d => d.id === f.originalDocId);
              return {
                 id: `doc-${Date.now()}-${index}`,
                 fileName: f.file.name,
                 documentType: f.docType,
-                url: f.file.dataUrl, // Pass the Object URL
+                url: f.file.dataUrl, // The URL is now a stable Data URL
                 size: f.file.size,
                 format: f.file.type,
                 uploadedAt: new Date().toISOString(),
@@ -243,14 +243,7 @@ export default function AmendSubmissionPage() {
                                                         originalDoc={doc} 
                                                         onFileUploaded={(file) => handleFileUploaded(doc.id, file)}
                                                         uploadedFile={amendedFile}
-                                                        onFileRemoved={() => {
-                                                            const fieldIndex = fields.findIndex(f => f.originalDocId === doc.id);
-                                                            if (fieldIndex > -1) {
-                                                                const urlToRevoke = fields[fieldIndex].file.dataUrl;
-                                                                URL.revokeObjectURL(urlToRevoke);
-                                                                remove(fieldIndex);
-                                                            }
-                                                        }}
+                                                        onFileRemoved={() => handleFileRemoved(doc.id)}
                                                     />
                                                 </TableCell>
                                             </TableRow>
