@@ -85,22 +85,33 @@ export default function AmendSubmissionPage() {
         keyName: "formId",
     });
 
-    const handleFileUploaded = (originalDocId: string, file: File) => {
-        const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
-        const originalDoc = submission?.documents.find(d => d.id === originalDocId);
-        
-        const fileData = {
-            originalDocId: originalDocId,
-            file: file,
-            docType: originalDoc?.documentType || ''
-        };
+    const handleFileUploaded = (originalDocId: string, uploadedFile: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result as string;
+            const originalDoc = submission?.documents.find(d => d.id === originalDocId);
 
-        if (existingIndex > -1) {
-            update(existingIndex, fileData);
-        } else {
-            append(fileData);
-        }
-        form.trigger("files"); // re-validate files array
+            const fileData = {
+                originalDocId: originalDocId,
+                file: {
+                    name: uploadedFile.name,
+                    type: uploadedFile.type,
+                    size: uploadedFile.size,
+                    dataUrl: dataUrl,
+                },
+                docType: originalDoc?.documentType || ''
+            };
+            
+            const existingIndex = fields.findIndex(f => f.originalDocId === originalDocId);
+
+            if (existingIndex > -1) {
+                update(existingIndex, fileData);
+            } else {
+                append(fileData);
+            }
+            form.trigger("files");
+        };
+        reader.readAsDataURL(uploadedFile);
     };
     
     const handleAmendmentSubmit = (data: FormValues) => {
@@ -111,7 +122,7 @@ export default function AmendSubmissionPage() {
                 id: `doc-${Date.now()}-${index}`,
                 fileName: f.file.name,
                 documentType: f.docType,
-                url: URL.createObjectURL(f.file),
+                url: f.file.dataUrl,
                 size: f.file.size,
                 format: f.file.type,
                 uploadedAt: new Date().toISOString(),
