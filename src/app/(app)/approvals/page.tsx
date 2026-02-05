@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Card,
@@ -19,8 +20,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSubmissions } from '@/context/submissions-context';
-import { type Submission } from "@/lib/data";
-import { MoreHorizontal, CheckCircle } from "lucide-react";
+import { type Submission, districtPerformanceData } from "@/lib/data";
+import { MoreHorizontal, CheckCircle, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,14 +31,68 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+
+// Mapping to enable filtering by district
+const branchToDistrictMap: { [key: string]: string } = {
+    'Downtown': 'Metro District',
+    'Uptown': 'Metro District',
+    'Eastside': 'Suburban District',
+    'Westend': 'Suburban District',
+    'North': 'Northern District',
+};
+const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
+
 
 export default function ApprovalsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { submissions, updateSubmissionStatus } = useSubmissions();
+  
+  const [filters, setFilters] = useState({
+    branch: 'all',
+    district: 'all',
+    searchTerm: '',
+  });
 
-  // For this page, we'll consider 'Pending' submissions as those awaiting final approval.
-  const submissionsForApproval = submissions.filter(s => s.status === 'Pending');
+  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
+
+  const uniqueBranches = [...new Set(submissions.map(s => s.branch))];
+
+  useEffect(() => {
+    // Start with submissions that are pending approval
+    let data = submissions.filter(s => s.status === 'Pending');
+
+    if (filters.branch !== 'all') {
+        data = data.filter(s => s.branch === filters.branch);
+    }
+    
+    if (filters.district !== 'all') {
+        data = data.filter(s => branchToDistrictMap[s.branch] === filters.district);
+    }
+    
+    if (filters.searchTerm) {
+        const term = filters.searchTerm.toLowerCase();
+        data = data.filter(s => 
+            s.customerName.toLowerCase().includes(term) ||
+            s.id.toLowerCase().includes(term)
+        );
+    }
+
+    setFilteredSubmissions(data);
+  }, [filters, submissions]);
+
+  const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
+    setFilters(prev => ({ ...prev, [filterName]: value }));
+  };
 
   const handleApprove = (submissionId: string) => {
     updateSubmissionStatus(submissionId, 'Approved');
@@ -58,6 +113,43 @@ export default function ApprovalsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-col md:flex-row items-end gap-4 mb-6 pb-6 border-b">
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="search-filter">Search by Customer or ID</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search-filter"
+                type="search"
+                placeholder="e.g., Alice Johnson or SUB001"
+                className="pl-8"
+                value={filters.searchTerm}
+                onChange={e => handleFilterChange('searchTerm', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="branch-filter">Filter by Branch</Label>
+            <Select value={filters.branch} onValueChange={v => handleFilterChange('branch', v)}>
+              <SelectTrigger id="branch-filter"><SelectValue placeholder="Select Branch" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                {uniqueBranches.map(branch => <SelectItem key={branch} value={branch}>{branch}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2 w-full md:max-w-xs">
+            <Label htmlFor="district-filter">Filter by District</Label>
+            <Select value={filters.district} onValueChange={v => handleFilterChange('district', v)}>
+              <SelectTrigger id="district-filter"><SelectValue placeholder="Select District" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Districts</SelectItem>
+                {uniqueDistricts.map(district => <SelectItem key={district} value={district}>{district}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -71,8 +163,8 @@ export default function ApprovalsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {submissionsForApproval.length > 0 ? (
-                submissionsForApproval.map((submission) => (
+            {filteredSubmissions.length > 0 ? (
+                filteredSubmissions.map((submission) => (
                 <TableRow key={submission.id}>
                     <TableCell>
                         <div className="font-medium">{submission.customerName}</div>
@@ -112,7 +204,7 @@ export default function ApprovalsPage() {
             ) : (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                        No submissions are currently awaiting approval.
+                        No submissions are awaiting approval for the selected filters.
                     </TableCell>
                 </TableRow>
             )}
