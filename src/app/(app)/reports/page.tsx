@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -47,6 +46,16 @@ const uniqueOfficers = [...new Set(officerPerformanceData.map(item => item.name)
 const uniqueStatuses: Submission['status'][] = ['Pending', 'Approved', 'Rejected', 'Amendment', 'Escalated'];
 const uniqueDistricts = [...new Set(districtPerformanceData.map(item => item.name))];
 
+// Mapping to enable filtering by district
+const branchToDistrictMap: { [key: string]: string } = {
+    'Downtown': 'Metro District',
+    'Uptown': 'Metro District',
+    'Eastside': 'Suburban District',
+    'Westend': 'Suburban District',
+    'North': 'Northern District',
+};
+
+
 export default function ReportsPage() {
   const { toast } = useToast();
   const { submissions } = useSubmissions();
@@ -82,10 +91,7 @@ export default function ReportsPage() {
     }
     
     if (filters.district !== 'all') {
-        toast({
-            title: "Filter Notice",
-            description: "District filtering is not fully implemented in this demo as branch-to-district mapping is not available.",
-        })
+        filteredData = filteredData.filter(s => branchToDistrictMap[s.branch] === filters.district);
     }
 
     if (filters.officer !== 'all') {
