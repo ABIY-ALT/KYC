@@ -40,10 +40,10 @@ export function InlineUploader({ originalDoc, onFileUploaded, uploadedFile, onFi
         }
     }, [onFileUploaded]);
 
-    const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
+    // By default (noClick: false), clicking the root element will open the file dialog.
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         multiple: false,
-        noClick: true,
         noKeyboard: true,
         accept: { 'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf'] }
     });
@@ -61,16 +61,17 @@ export function InlineUploader({ originalDoc, onFileUploaded, uploadedFile, onFi
     }
 
     return (
-        <div {...getRootProps()} className={cn(
-            "p-2 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors flex items-center justify-center",
-            isDragActive 
-                ? "border-primary bg-primary/10" 
-                : "border-transparent hover:border-input"
-        )}>
+        <div 
+            {...getRootProps()} 
+            className={cn(
+                "inline-block rounded-md cursor-pointer", // Wrapper is clickable and has cursor
+                isDragActive && "outline-dashed outline-2 outline-offset-2 outline-primary"
+            )}
+        >
             <input {...getInputProps()} />
-            <Button type="button" variant="outline" size="sm" onClick={open}>
+            <Button type="button" variant="outline" size="sm" className="pointer-events-none">
                 <FileUp className="mr-2" />
-                {isDragActive ? 'Drop New Version' : 'Upload New Version'}
+                {isDragActive ? 'Drop to upload' : 'Upload New Version'}
             </Button>
         </div>
     );
