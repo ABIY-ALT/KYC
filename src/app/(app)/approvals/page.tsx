@@ -119,9 +119,9 @@ export default function ApprovalsPage() {
   };
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardHeader>
-        <CardTitle>Final Approvals</CardTitle>
+        <CardTitle className="gradient-text">Final Approvals</CardTitle>
         <CardDescription>
           Review and grant final approval for compliant KYC submissions.
         </CardDescription>
@@ -179,7 +179,7 @@ export default function ApprovalsPage() {
           <TableBody>
             {filteredSubmissions.length > 0 ? (
                 filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
+                <TableRow key={submission.id} className="hover-lift">
                     <TableCell>
                         <div className="font-medium">{submission.customerName}</div>
                         <div className="hidden text-sm text-muted-foreground md:inline">

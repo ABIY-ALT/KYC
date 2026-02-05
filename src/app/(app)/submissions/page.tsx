@@ -75,9 +75,9 @@ export default function MySubmissionsPage() {
   };
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardHeader>
-        <CardTitle>My Submissions</CardTitle>
+        <CardTitle className="gradient-text">My Submissions</CardTitle>
         <CardDescription>
           A list of all recent KYC submissions for your branch.
         </CardDescription>
@@ -97,7 +97,7 @@ export default function MySubmissionsPage() {
           </TableHeader>
           <TableBody>
             {userSubmissions.map((submission) => (
-              <TableRow key={submission.id} className="cursor-pointer" onClick={() => router.push(`/review-queue/${submission.id}`)}>
+              <TableRow key={submission.id} className="cursor-pointer hover-lift" onClick={() => router.push(`/review-queue/${submission.id}`)}>
                 <TableCell>
                   <div className="font-medium">{submission.customerName}</div>
                   <div className="hidden text-sm text-muted-foreground md:inline">

@@ -118,9 +118,9 @@ export default function EscalationsPage() {
   };
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardHeader>
-        <CardTitle>Escalation Management</CardTitle>
+        <CardTitle className="gradient-text">Escalation Management</CardTitle>
         <CardDescription>
           Review and resolve high-risk cases that have been escalated for supervisor attention.
         </CardDescription>
@@ -178,7 +178,7 @@ export default function EscalationsPage() {
           <TableBody>
             {filteredSubmissions.length > 0 ? (
               filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
+                <TableRow key={submission.id} className="hover-lift">
                   <TableCell>
                     <div className="font-medium">{submission.customerName}</div>
                     <div className="hidden text-sm text-muted-foreground md:inline">

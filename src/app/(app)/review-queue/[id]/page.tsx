@@ -47,7 +47,7 @@ export default function SubmissionReviewPage({ params }: { params: { id: string 
             </Button>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2">
-                    <Card className="overflow-hidden">
+                    <Card className="overflow-hidden hover-lift">
                         <CardHeader>
                             <CardTitle>Document Viewer</CardTitle>
                             <CardDescription>Review the submitted document below for {submission.customerName}.</CardDescription>

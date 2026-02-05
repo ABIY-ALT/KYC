@@ -137,14 +137,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="hover-lift">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center gap-6 p-6">
-            <Avatar className="h-24 w-24">
+            <Avatar className="h-24 w-24 hover-lift">
                 <AvatarImage src={userAvatar?.imageUrl} alt={userData.firstName} data-ai-hint="person portrait" />
                 <AvatarFallback>{userData.firstName?.[0]}{userData.lastName?.[0]}</AvatarFallback>
             </Avatar>
             <div className="grid gap-1">
-                <CardTitle className="text-3xl">{userData.firstName} {userData.lastName}</CardTitle>
+                <CardTitle className="text-3xl gradient-text">{userData.firstName} {userData.lastName}</CardTitle>
                 <CardDescription className="text-base">{userData.email}</CardDescription>
                 <div className="flex items-center gap-2 pt-2">
                     <Badge>{userData.role}</Badge>
@@ -155,7 +155,7 @@ export default function ProfilePage() {
       </Card>
       
       <div className="grid md:grid-cols-2 gap-6 items-start">
-        <Card>
+        <Card className="hover-lift">
             <CardHeader>
                 <CardTitle>Personal Information</CardTitle>
                 <CardDescription>Update your personal information.</CardDescription>
@@ -193,7 +193,7 @@ export default function ProfilePage() {
             </Form>
         </Card>
 
-        <Card>
+        <Card className="hover-lift">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><KeyRound /> Change Password</CardTitle>
                 <CardDescription>Update your account password. This is disabled for the anonymous demo user.</CardDescription>
@@ -230,9 +230,9 @@ export default function ProfilePage() {
             </Form>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 hover-lift">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck /> Roles & Permissions</CardTitle>
+                <CardTitle className="flex items-center gap-2 gradient-text"><ShieldCheck /> Roles & Permissions</CardTitle>
                 <CardDescription>
                     Your assigned role determines what you can see and do within the application. These are managed by your administrator.
                 </CardDescription>

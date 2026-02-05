@@ -196,9 +196,9 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="hover-lift">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 gradient-text">
             <SlidersHorizontal className="h-5 w-5" /> Report Generation
           </CardTitle>
           <CardDescription>
@@ -300,9 +300,9 @@ export default function ReportsPage() {
       </Card>
       
       {reportGenerated && (
-         <Card>
+         <Card className="hover-lift">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 gradient-text">
                     <FileText className="h-5 w-5" /> Report Results
                 </CardTitle>
                 <CardDescription>
@@ -323,7 +323,7 @@ export default function ReportsPage() {
                     <TableBody>
                         {reportData.length > 0 ? (
                             reportData.map(sub => (
-                                <TableRow key={sub.id}>
+                                <TableRow key={sub.id} className="hover-lift">
                                     <TableCell>
                                         <div className="font-medium">{sub.customerName}</div>
                                         <div className="text-sm text-muted-foreground">{sub.id}</div>

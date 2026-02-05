@@ -71,9 +71,9 @@ export default function NewSubmissionPage() {
 
   return (
     <div className="flex justify-center items-start">
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-2xl hover-lift">
         <CardHeader>
-            <CardTitle>New KYC Submission</CardTitle>
+            <CardTitle className="gradient-text">New KYC Submission</CardTitle>
             <CardDescription>
             Upload customer documents for review. The submission will be automatically tagged with your branch and the current timestamp.
             </CardDescription>

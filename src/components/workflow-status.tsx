@@ -98,7 +98,7 @@ export function WorkflowStatus({ submission, onEscalate, onApprove, onStatusChan
   const steps = getWorkflowSteps(submission);
 
   return (
-    <div className="workflow-container">
+    <div className="workflow-container hover-lift">
       <div className="workflow-title">
         <h3>KYC Workflow Status</h3>
         <div className="workflow-time">Updated just now</div>

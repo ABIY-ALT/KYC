@@ -112,9 +112,9 @@ export default function ReviewQueuePage() {
   };
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardHeader>
-        <CardTitle>Review Queue</CardTitle>
+        <CardTitle className="gradient-text">Review Queue</CardTitle>
         <CardDescription>
           Submissions awaiting review and approval. Use filters to narrow down the list.
         </CardDescription>
@@ -183,7 +183,7 @@ export default function ReviewQueuePage() {
           <TableBody>
             {filteredSubmissions.length > 0 ? (
                 filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
+                <TableRow key={submission.id} className="hover-lift">
                     <TableCell>
                     <div className="font-medium">{submission.customerName}</div>
                     <div className="hidden text-sm text-muted-foreground md:inline">

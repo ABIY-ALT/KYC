@@ -57,7 +57,7 @@ function NotificationItem({ notification, onMarkAsRead, isClient }: { notificati
 
   return (
     <div
-      className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+      className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer hover-lift"
       onClick={handleItemClick}
     >
       <div className={cn("mt-1", iconColor)}>
@@ -117,11 +117,11 @@ export default function NotificationsPage() {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <Card className="h-full flex flex-col">
+    <Card className="h-full flex flex-col hover-lift">
       <CardHeader>
         <div className="flex items-center justify-between">
             <div className="grid gap-1">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 gradient-text">
                 <Bell />
                 Notifications
                 </CardTitle>

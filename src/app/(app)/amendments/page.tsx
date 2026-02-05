@@ -107,9 +107,9 @@ export default function AmendmentsPage() {
   };
 
   return (
-    <Card>
+    <Card className="hover-lift">
       <CardHeader>
-        <CardTitle>Amendment Management</CardTitle>
+        <CardTitle className="gradient-text">Amendment Management</CardTitle>
         <CardDescription>
           Review and process submissions that require amendments. Use filters to narrow down the list.
         </CardDescription>
@@ -166,7 +166,7 @@ export default function AmendmentsPage() {
           <TableBody>
             {filteredSubmissions.length > 0 ? (
                 filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id}>
+                <TableRow key={submission.id} className="hover-lift">
                     <TableCell>
                     <div className="font-medium">{submission.customerName}</div>
                     <div className="hidden text-sm text-muted-foreground md:inline">

@@ -59,23 +59,23 @@ export default function DistrictPerformancePage() {
         <div className="flex flex-1 flex-col gap-4 md:gap-8">
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
                 {kpis.map((kpi, index) => (
-                    <Card key={index}>
+                    <Card key={index} className="hover-lift">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">
                                 {kpi.label}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{kpi.value}</div>
+                            <div className="text-2xl font-bold animate-pulse-glow">{kpi.value}</div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
 
             <div className="grid gap-4 md:gap-8 lg:grid-cols-5">
-                <Card className="lg:col-span-3">
+                <Card className="lg:col-span-3 hover-lift">
                     <CardHeader>
-                        <CardTitle>District Breakdown</CardTitle>
+                        <CardTitle className="gradient-text">District Breakdown</CardTitle>
                         <CardDescription>
                             Aggregated performance metrics for each district. Use the filter to refine the list.
                         </CardDescription>
@@ -111,14 +111,14 @@ export default function DistrictPerformancePage() {
                             <TableBody>
                                 {filteredData.length > 0 ? (
                                     filteredData.map((district) => (
-                                        <TableRow key={district.id}>
+                                        <TableRow key={district.id} className="hover-lift">
                                             <TableCell className="font-medium">{district.name}</TableCell>
                                             <TableCell className="text-right">{district.totalSubmissions.toLocaleString()}</TableCell>
                                             <TableCell className="text-right">{district.approvalRate.toFixed(1)}%</TableCell>
                                             <TableCell className="text-right">{district.avgTurnaroundTime.toFixed(1)}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Progress value={district.slaCompliance} aria-label={`${district.slaCompliance}% SLA Compliance`} />
+                                                    <Progress value={district.slaCompliance} aria-label={`${district.slaCompliance}% SLA Compliance`} className="animate-shimmer" />
                                                     <span className="text-xs text-muted-foreground">{district.slaCompliance}%</span>
                                                 </div>
                                             </TableCell>
@@ -136,9 +136,9 @@ export default function DistrictPerformancePage() {
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-2 hover-lift">
                      <CardHeader>
-                        <CardTitle>District Volume Comparison</CardTitle>
+                        <CardTitle className="gradient-text">District Volume Comparison</CardTitle>
                         <CardDescription>Comparison of submission volumes across districts.</CardDescription>
                     </CardHeader>
                     <CardContent>

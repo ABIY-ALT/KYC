@@ -145,9 +145,9 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="space-y-6">
-       <Card>
+       <Card className="hover-lift">
         <CardHeader>
-            <CardTitle>System Settings</CardTitle>
+            <CardTitle className="gradient-text">System Settings</CardTitle>
             <CardDescription>
                 Manage system-wide settings, roles, and workflow configurations.
                 Access is restricted to administrators.
@@ -163,7 +163,7 @@ export default function SystemSettingsPage() {
         </TabsList>
 
         <TabsContent value="general">
-          <Card>
+          <Card className="hover-lift">
             <CardHeader>
               <CardTitle>General Settings</CardTitle>
               <CardDescription>
@@ -205,7 +205,7 @@ export default function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="roles">
-          <Card>
+          <Card className="hover-lift">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -255,7 +255,7 @@ export default function SystemSettingsPage() {
                 </TableHeader>
                 <TableBody>
                   {roles.map(role => (
-                    <TableRow key={role.id}>
+                    <TableRow key={role.id} className="hover-lift">
                       <TableCell className="font-semibold">{role.name}</TableCell>
                       {allPermissions.map(p => (
                         <TableCell key={p.id} className="text-center hidden lg:table-cell">
@@ -297,7 +297,7 @@ export default function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="workflow">
-          <Card>
+          <Card className="hover-lift">
             <CardHeader>
               <CardTitle>Workflow Rules</CardTitle>
               <CardDescription>
@@ -339,7 +339,7 @@ export default function SystemSettingsPage() {
         </TabsContent>
 
         <TabsContent value="documents">
-          <Card>
+          <Card className="hover-lift">
             <CardHeader>
               <CardTitle>Document Types</CardTitle>
               <CardDescription>
@@ -367,7 +367,7 @@ export default function SystemSettingsPage() {
                       </TableHeader>
                       <TableBody>
                           {documentTypes.map(docType => (
-                              <TableRow key={docType}>
+                              <TableRow key={docType} className="hover-lift">
                                   <TableCell className="font-medium">{docType}</TableCell>
                                   <TableCell className="text-right">
                                       <Button variant="ghost" size="icon" onClick={() => handleRemoveDocType(docType)}>

@@ -238,10 +238,10 @@ export default function UserManagementPage() {
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <Card>
+        <Card className="hover-lift">
             <CardHeader className="flex flex-row items-center justify-between">
                 <div className="grid gap-2">
-                    <CardTitle>User Management</CardTitle>
+                    <CardTitle className="gradient-text">User Management</CardTitle>
                     <CardDescription>
                         Add, edit, and manage user accounts and their roles.
                     </CardDescription>
@@ -280,10 +280,10 @@ export default function UserManagementPage() {
                             </TableRow>
                         ))}
                         {!isLoading && users && users.map((user, index) => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.id} className="hover-lift">
                                 <TableCell>
                                     <div className="flex items-center gap-3">
-                                        <Avatar className="h-9 w-9">
+                                        <Avatar className="h-9 w-9 hover:animate-float">
                                             <AvatarImage src={userAvatars[index % userAvatars.length].imageUrl} alt={`${user.firstName} ${user.lastName}`} data-ai-hint="person portrait" />
                                             <AvatarFallback>{user.firstName.slice(0, 1)}{user.lastName.slice(0, 1)}</AvatarFallback>
                                         </Avatar>
@@ -333,4 +333,3 @@ export default function UserManagementPage() {
     </Dialog>
   );
 }
-    

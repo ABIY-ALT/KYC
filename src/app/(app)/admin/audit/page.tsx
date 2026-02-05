@@ -121,7 +121,7 @@ export default function AuditLogsPage() {
 
     return (
         <div className="space-y-6">
-            <Card>
+            <Card className="hover-lift">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <History /> Audit Logs
@@ -189,7 +189,7 @@ export default function AuditLogsPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="hover-lift">
                 <CardHeader>
                     <CardTitle>Log Entries</CardTitle>
                     <CardDescription>Displaying {filteredLogs.length} of {initialAuditLogs.length} total entries.</CardDescription>
@@ -208,7 +208,7 @@ export default function AuditLogsPage() {
                         <TableBody>
                             {filteredLogs.length > 0 ? (
                                 filteredLogs.map(log => (
-                                    <TableRow key={log.id}>
+                                    <TableRow key={log.id} className="hover-lift">
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-9 w-9">
@@ -250,4 +250,3 @@ export default function AuditLogsPage() {
         </div>
     );
 }
-    
