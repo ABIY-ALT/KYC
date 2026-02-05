@@ -1,40 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  Menu,
-  CircleUser,
-  LogOut,
-  Settings
-} from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import Logo from '@/components/logo';
 import { AppNav } from '@/components/app-nav';
 import { ScrollArea } from './ui/scroll-area';
-import { useAuth } from '@/firebase';
-import type { User } from '@/lib/data';
 import { ThemeToggle } from './theme-toggle';
 
-export default function AppHeader({ user }: { user: User | null }) {
-  const auth = useAuth();
-  const router = useRouter();
-
-  const handleLogout = () => {
-    auth.signOut();
-    router.replace('/login');
-  };
-
+export default function AppHeader() {
   return (
     <header className="flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-6 sticky top-0 z-30">
       <Sheet>
@@ -62,35 +37,6 @@ export default function AppHeader({ user }: { user: User | null }) {
         
       </div>
       <ThemeToggle />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="rounded-full">
-            <CircleUser className="h-5 w-5" />
-            <span className="sr-only">Toggle user menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <Link href="/profile" passHref>
-            <DropdownMenuItem>
-              <CircleUser className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </DropdownMenuItem>
-          </Link>
-          <Link href="/admin/settings" passHref>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-          </Link>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Logout</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </header>
   );
 }
