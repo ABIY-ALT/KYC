@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,7 +10,7 @@ import Image from "next/image";
 import { useSubmissions } from "@/context/submissions-context";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
-import type { User as UserData, Submission, SubmittedDocument } from "@/lib/data";
+import type { User as UserData, Submission } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,11 +42,13 @@ const DOCUMENT_TYPES = [
   'Supporting Document',
 ];
 
+// This schema is for the form state. It does NOT include the File object to avoid performance issues.
 const fileSchema = z.object({
-  file: z.instanceof(File),
-  docType: z.string().min(1, "Please select a document type."),
   id: z.string(),
-  previewUrl: z.string(), // For temporary client-side preview
+  docType: z.string().min(1, "Please select a document type."),
+  previewUrl: z.string(),
+  name: z.string(),
+  size: z.number(),
 });
 
 const submissionSchema = z.object({
@@ -62,6 +65,9 @@ export default function NewSubmissionPage() {
   const [step, setStep] = useState<'upload' | 'preview'>('upload');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  // Use a ref to store the actual File objects, keeping them out of the React Hook Form state.
+  const fileStore = useRef<Map<string, File>>(new Map());
+
   const { user: authUser } = useUser();
   const firestore = useFirestore();
   const userDocRef = useMemoFirebase(() => authUser ? doc(firestore, 'users', authUser.uid) : null, [firestore, authUser]);
@@ -81,7 +87,7 @@ export default function NewSubmissionPage() {
     name: "files",
   });
   
-  // CRITICAL FIX: Cleanup blob URLs on unmount to prevent memory leaks
+  // Cleanup blob URLs and the file store on unmount to prevent memory leaks.
   useEffect(() => {
     return () => {
       const files = form.getValues('files');
@@ -90,14 +96,28 @@ export default function NewSubmissionPage() {
           URL.revokeObjectURL(file.previewUrl);
         }
       });
+      fileStore.current.clear();
     };
   }, [form]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
-      if (!fields.some(field => field.file.name === file.name && field.file.size === file.size)) {
+      // Check for duplicates before adding
+      if (!fields.some(field => field.name === file.name && field.size === file.size)) {
+        const id = `${file.name}-${file.size}-${file.lastModified}`;
         const previewUrl = URL.createObjectURL(file);
-        append({ file, docType: "", id: Math.random().toString(36).substring(7), previewUrl });
+        
+        // Store the heavy File object in the ref.
+        fileStore.current.set(id, file);
+
+        // Append only lightweight, serializable data to the form state.
+        append({
+            id: id,
+            docType: "",
+            previewUrl: previewUrl,
+            name: file.name,
+            size: file.size,
+        });
       }
     });
   }, [append, fields]);
@@ -108,6 +128,10 @@ export default function NewSubmissionPage() {
     const fileToRemove = fields[index];
     if (fileToRemove?.previewUrl) {
       URL.revokeObjectURL(fileToRemove.previewUrl);
+    }
+    // Remove the file from the ref store.
+    if (fileToRemove?.id) {
+        fileStore.current.delete(fileToRemove.id);
     }
     remove(index);
   }
@@ -126,20 +150,63 @@ export default function NewSubmissionPage() {
   };
   
   const onSubmit = (data: FormValues) => {
-    // Data storage is disabled for now as requested for debugging.
+    const newSubmission: Submission = {
+      id: `SUB${Date.now().toString().slice(-4)}`,
+      customerName: data.customerName,
+      branch: userBranch,
+      submittedAt: new Date().toISOString(),
+      status: 'Pending',
+      officer: 'N/A', // Will be assigned later
+      documents: data.files.map(formFile => {
+        // Retrieve the actual File from the ref store
+        const actualFile = fileStore.current.get(formFile.id);
+        if (!actualFile) {
+            // This should not happen if the logic is correct
+            console.error(`File with id ${formFile.id} not found in store.`);
+            // Return a dummy object or throw an error to avoid a crash
+             return {
+                id: `doc-${formFile.id}`,
+                fileName: formFile.name,
+                documentType: formFile.docType,
+                url: '',
+                size: formFile.size,
+                format: 'unknown',
+                uploadedAt: new Date().toISOString(),
+                version: 1,
+            };
+        }
+        return {
+            id: `doc-${formFile.id}`,
+            fileName: actualFile.name,
+            documentType: formFile.docType,
+            // In a real app, this URL would come from a storage service after upload.
+            // For now, we'll use a placeholder.
+            url: `https://picsum.photos/seed/doc${formFile.id}/800/1100`,
+            size: actualFile.size,
+            format: actualFile.type,
+            uploadedAt: new Date().toISOString(),
+            version: 1,
+        };
+      }).filter(doc => doc.url), // Filter out any potential errors
+    };
+
+    addSubmission(newSubmission);
     
     toast({
-      title: "Submission Successful (Simulation)",
-      description: `Package for ${data.customerName} was processed without saving data.`,
+      title: "Submission Successful",
+      description: `Package for ${data.customerName} has been submitted for review.`,
     });
     
+    // Clear the file store ref manually as form.reset() doesn't affect it.
+    fileStore.current.clear();
     form.reset();
     setStep('upload');
     setIsDialogOpen(false);
   };
   
-  const renderFilePreview = (file: File, previewUrl: string) => {
-    if (file.type.startsWith("image/")) {
+  const renderFilePreview = (fileId: string, previewUrl: string) => {
+    const file = fileStore.current.get(fileId);
+    if (file?.type.startsWith("image/")) {
       return <Image src={previewUrl} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
     }
     return <FileIcon className="h-10 w-10 text-muted-foreground" />
@@ -176,13 +243,13 @@ export default function NewSubmissionPage() {
                 <Card key={f.id} className="bg-muted/30">
                     <CardHeader className="flex flex-row items-start gap-4">
                        <div className="w-16 h-16 bg-background rounded-md flex items-center justify-center border">
-                           {renderFilePreview(f.file, f.previewUrl)}
+                           {renderFilePreview(f.id, f.previewUrl)}
                        </div>
                        <div className="flex-1">
                            <CardTitle className="text-lg">{f.docType}</CardTitle>
-                           <CardDescription>{f.file.name}</CardDescription>
+                           <CardDescription>{f.name}</CardDescription>
                            <p className="text-xs text-muted-foreground mt-1">
-                               {(f.file.size / (1024 * 1024)).toFixed(2)} MB | {new Date().toLocaleDateString()}
+                               {(f.size / (1024 * 1024)).toFixed(2)} MB | {new Date().toLocaleDateString()}
                            </p>
                        </div>
                        <a href={f.previewUrl} target="_blank" rel="noopener noreferrer">
@@ -244,10 +311,10 @@ export default function NewSubmissionPage() {
                         <div className="space-y-4">
                         {fields.map((field, index) => (
                            <div key={field.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/30">
-                             <div className="flex-shrink-0">{renderFilePreview(field.file, field.previewUrl)}</div>
+                             <div className="flex-shrink-0">{renderFilePreview(field.id, field.previewUrl)}</div>
                              <div className="flex-1">
-                               <p className="text-sm font-medium truncate">{field.file.name}</p>
-                               <p className="text-xs text-muted-foreground">{(field.file.size / 1024).toFixed(1)} KB</p>
+                               <p className="text-sm font-medium truncate">{field.name}</p>
+                               <p className="text-xs text-muted-foreground">{(field.size / 1024).toFixed(1)} KB</p>
                              </div>
                              <FormField
                                 control={form.control}
@@ -285,3 +352,5 @@ export default function NewSubmissionPage() {
     </Card>
   );
 }
+
+    
