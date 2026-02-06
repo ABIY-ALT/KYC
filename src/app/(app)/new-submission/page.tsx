@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
@@ -127,30 +126,11 @@ export default function NewSubmissionPage() {
   };
   
   const onSubmit = (data: FormValues) => {
-    const newSubmission: Submission = {
-      id: `SUB${Date.now().toString().slice(-4)}`,
-      customerName: data.customerName,
-      branch: userBranch,
-      submittedAt: new Date().toISOString(),
-      status: 'Pending',
-      officer: 'N/A',
-      documents: data.files.map((f, index): SubmittedDocument => ({
-        id: `doc-${Date.now()}-${index}`,
-        fileName: f.file.name,
-        documentType: f.docType,
-        // CRITICAL FIX: Use a stable placeholder URL, not the temporary blob URL
-        url: `https://picsum.photos/seed/doc${Date.now()}-${index}/800/1100`,
-        size: f.file.size,
-        format: f.file.type,
-        uploadedAt: new Date().toISOString(),
-      })),
-    };
-    
-    addSubmission(newSubmission);
+    // Data storage is disabled for now as requested for debugging.
     
     toast({
-      title: "Submission Successful",
-      description: `Package for ${data.customerName} has been sent for review.`,
+      title: "Submission Successful (Simulation)",
+      description: `Package for ${data.customerName} was processed without saving data.`,
     });
     
     form.reset();
