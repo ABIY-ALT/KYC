@@ -23,66 +23,69 @@ const SubmissionsContext = createContext<SubmissionsContextType | undefined>(und
 export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
 
-  // Bank-safe state updater for amendment submissions
-  const updateSubmissionState = useCallback((submissionId: string, amendment: Amendment) => {
-    setSubmissions(prev =>
-      prev.map(sub =>
-        sub.id === submissionId
-          ? {
-              ...sub,
-              status: "Pending Review", // Set status for the officer to re-review
-              amendmentHistory: [...(sub.amendmentHistory || []), amendment], // Add the new amendment to history
-              pendingAmendments: [], // Clear outstanding requests
-              documents: [...sub.documents, ...amendment.documents], // Add new documents to the main list
-            }
-          : sub
-      )
-    );
-  }, []);
-
-  const submitAmendment = useCallback(async (submissionId: string, amendedFiles: LocalAmendedFile[], comment: string, responseType: string) => {
-    const submission = submissions.find(s => s.id === submissionId);
-    if (!submission) {
-      throw new Error("Missing submissionId");
-    }
-
-    // Convert local files to clean, serializable metadata
-    const newDocumentsForHistory: SubmittedDocument[] = amendedFiles.map(f => {
-        const originalDoc = submission.documents.find(d => d.id === f.originalDocumentId);
-        const version = (originalDoc?.version || 0) + 1;
-        return {
-            id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            fileName: f.file.name,
-            documentType: f.documentType,
-            // Use a safe, placeholder URL. The actual file would be uploaded to cloud storage in a real app.
-            url: `https://picsum.photos/seed/doc${Date.now()}${Math.random()}/800/1100`, 
-            size: f.file.size,
-            format: f.file.type,
-            uploadedAt: new Date().toISOString(),
-            version: version,
-        };
-    });
-
-    const reasons = submission.pendingAmendments?.map(r => r.comment).join('\n') || 'General amendment response.';
-
-    /** 🔐 Construct amendment record (metadata only) */
-    const amendmentRecord: Amendment = {
-        requestedAt: submission.pendingAmendments?.[0]?.requestedAt || new Date().toISOString(),
-        requestedBy: submission.officer,
-        reason: reasons,
-        respondedAt: new Date().toISOString(),
-        responseComment: comment,
-        responseType: responseType,
-        documents: newDocumentsForHistory,
-    };
-
-    /** 🧠 IMPORTANT: NEVER mutate existing submission */
-    updateSubmissionState(submissionId, amendmentRecord);
-    
-    /** Optional: In a real app, this would persist to Firestore. */
-    // await persistAmendment(submissionId, amendmentRecord);
-
-  }, [submissions, updateSubmissionState]);
+  const submitAmendment = useCallback(
+    async (
+      submissionId: string,
+      amendedFiles: LocalAmendedFile[],
+      comment: string,
+      responseType: string
+    ) => {
+      if (!amendedFiles.length) {
+        throw new Error("No amended files provided");
+      }
+  
+      setSubmissions(prev =>
+        prev.map(sub => {
+          if (sub.id !== submissionId) return sub;
+  
+          const now = new Date().toISOString();
+  
+          // Build documents metadata ONLY
+          const amendmentDocuments: SubmittedDocument[] = amendedFiles.map((f, index) => {
+            const original = sub.documents.find(d => d.id === f.originalDocumentId);
+            const nextVersion = (original?.version ?? 0) + 1;
+  
+            return {
+              id: `doc-${submissionId}-${nextVersion}-${index}`,
+              fileName: f.file.name,
+              documentType: f.documentType,
+              url: `https://picsum.photos/seed/amd${Date.now()}${index}/800/1100`, // placeholder
+              size: f.file.size,
+              format: f.file.type,
+              uploadedAt: now,
+              version: nextVersion,
+            };
+          });
+  
+          const amendment: Amendment = {
+            requestedAt: sub.pendingAmendments?.[0]?.requestedAt ?? now,
+            requestedBy: sub.officer,
+            reason:
+              sub.pendingAmendments?.map(r => r.comment).join("\n") ??
+              "Amendment requested",
+            respondedAt: now,
+            responseComment: comment,
+            responseType,
+            documents: amendmentDocuments,
+          };
+  
+          return {
+            ...sub,
+            status: "Pending Review",
+            amendmentHistory: [...(sub.amendmentHistory ?? []), amendment],
+            pendingAmendments: [],
+  
+            // ⚠️ DO NOT duplicate entire document list
+            documents: sub.documents,
+          };
+        })
+      );
+  
+      // Optional persistence hook
+      // await persistAmendment(submissionId, amendment);
+    },
+    []
+  );
 
   const addSubmission = useCallback((submission: Omit<Submission, 'amendmentHistory' | 'pendingAmendments'>) => {
     // Bank-safe implementation: Ensures only metadata is stored.
