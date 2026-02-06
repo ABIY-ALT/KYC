@@ -1,6 +1,6 @@
-
 "use client";
 
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,20 +21,21 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, UploadCloud, File as FileIcon, XCircle } from "lucide-react";
+import { AlertTriangle, UploadCloud, File as FileIcon, XCircle, Loader2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 
-const fileDataSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  size: z.number(),
-  url: z.string(),
-});
+// This is the lightweight file object that will be passed to the context.
+type LocalAmendedFile = {
+    file: File;
+    documentType: string;
+    originalDocumentId?: string;
+    amendmentRequestId: string;
+};
 
+// Form schema now only validates the comment. File validation is manual.
 const responseSchema = z.object({
-  responseComment: z.string().min(1, "A response comment is required."),
-  file: fileDataSchema.optional(),
+  responseComment: z.string().min(10, "A response comment of at least 10 characters is required."),
 });
 
 type FormValues = z.infer<typeof responseSchema>;
@@ -47,74 +48,101 @@ interface AmendmentResponseModalProps {
 }
 
 export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenChange }: AmendmentResponseModalProps) {
-  const { resolveAmendmentRequest } = useSubmissions();
+  const { submitAmendment } = useSubmissions();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // File is held in local state, NOT form state.
+  const [localFile, setLocalFile] = useState<{ file: File; previewUrl: string } | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(responseSchema),
-    defaultValues: { responseComment: "", file: undefined },
+    defaultValues: { responseComment: "" },
   });
   
+  const onDrop = useCallback((accepted: File[]) => {
+    if (accepted.length > 0) {
+      const file = accepted[0];
+      if (localFile?.previewUrl) {
+          URL.revokeObjectURL(localFile.previewUrl); // Clean up old preview
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setLocalFile({ file, previewUrl });
+    }
+  }, [localFile]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: false,
-    onDrop: (accepted, rejected) => {
-      if (rejected.length > 0) {
-        toast({ variant: "destructive", title: "File upload failed", description: rejected[0].errors[0].message });
-      } else if (accepted.length > 0) {
-        const file = accepted[0];
-        const url = URL.createObjectURL(file);
-        form.setValue('file', {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            url: url,
-        });
-        form.trigger('file');
-      }
-    },
+    onDrop,
     accept: { 'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf'] }
   });
 
-  const removeFile = () => {
-      const currentFile = form.getValues('file');
-      if (currentFile) {
-        URL.revokeObjectURL(currentFile.url);
-      }
-      form.setValue('file', undefined);
-      form.trigger('file');
-  }
+  const removeFile = useCallback(() => {
+    if (localFile) {
+      URL.revokeObjectURL(localFile.previewUrl);
+    }
+    setLocalFile(null);
+  }, [localFile]);
 
-  const onSubmit = (data: FormValues) => {
-    if (!submission || !request) return;
+  const isUploadingFile = request?.type === 'ADD_NEW' || request?.type === 'REPLACE_EXISTING';
 
-    if ((request.type === 'ADD_NEW' || request.type === 'REPLACE_EXISTING') && !data.file) {
-      form.setError('file', { type: 'manual', message: 'A file must be uploaded for this type of request.' });
+  const onSubmit = async (data: FormValues) => {
+    if (!submission || !request || isSubmitting) return;
+
+    if (isUploadingFile && !localFile) {
+      toast({ variant: "destructive", title: "File Required", description: "A file must be uploaded for this type of request." });
       return;
     }
 
-    resolveAmendmentRequest(submission.id, request.id, data.responseComment, data.file);
-    toast({
-      title: "Amendment Response Sent",
-      description: "Your response has been sent to the KYC officer for review.",
-    });
-    onOpenChange(false);
-    form.reset();
+    setIsSubmitting(true);
+    
+    const amendedFiles: LocalAmendedFile[] = [];
+    if (localFile) {
+        amendedFiles.push({
+            file: localFile.file,
+            documentType: request.targetDocumentType,
+            originalDocumentId: request.targetDocumentId,
+            amendmentRequestId: request.id,
+        });
+    }
+
+    try {
+      await submitAmendment(submission.id, amendedFiles, data.responseComment, 'Response Provided');
+      
+      toast({
+        title: "Amendment Response Sent",
+        description: "Your response has been sent for re-review.",
+      });
+      onOpenChange(false); // This will trigger the cleanup
+    } catch (err) {
+      console.error(err);
+      toast({ variant: "destructive", title: "Submission Failed" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const renderFilePreview = (file: {name: string, url: string, type: string}) => {
-    if (file.type.startsWith("image/")) {
-      return <Image src={file.url} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
+  const renderFilePreview = (file: {previewUrl: string, file: File}) => {
+    if (file.file.type.startsWith("image/")) {
+      return <Image src={file.previewUrl} alt={file.file.name} width={40} height={40} className="rounded-sm object-cover" />
     }
     return <FileIcon className="h-10 w-10 text-muted-foreground" />
   }
-  
-  const isUploadingFile = request?.type === 'ADD_NEW' || request?.type === 'REPLACE_EXISTING';
 
+  // Cleanup effect
+  useEffect(() => {
+    // This effect runs when the component unmounts or when the dialog is hidden
+    return () => {
+        removeFile();
+    }
+  }, [removeFile]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
-        removeFile(); // Clean up blob URL on close
+        // Explicitly clean up and reset when dialog is closed.
+        removeFile();
+        form.reset();
       }
       onOpenChange(open);
     }}>
@@ -139,40 +167,31 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {isUploadingFile && (
-                <FormField
-                  control={form.control}
-                  name="file"
-                  render={({ field }) => (
-                    <FormItem>
-                       <FormLabel>
-                          {request?.type === 'REPLACE_EXISTING' ? `Upload New Version of ${request.targetDocumentType}` : `Upload New ${request.targetDocumentType}`}
-                      </FormLabel>
-                      {field.value ? (
-                          <div className="flex items-center gap-4 p-2 rounded-md border bg-muted/50">
-                             <div className="flex-shrink-0">{renderFilePreview(field.value)}</div>
-                             <div className="flex-1">
-                               <p className="text-sm font-medium truncate">{field.value.name}</p>
-                               <p className="text-xs text-muted-foreground">{(field.value.size / 1024).toFixed(1)} KB</p>
-                             </div>
-                              <Button variant="ghost" size="icon" onClick={removeFile}>
+                <FormItem>
+                    <FormLabel>
+                        {request?.type === 'REPLACE_EXISTING' ? `Upload New Version of ${request.targetDocumentType}` : `Upload New ${request.targetDocumentType}`}
+                    </FormLabel>
+                    {localFile ? (
+                        <div className="flex items-center gap-4 p-2 rounded-md border bg-muted/50">
+                            <div className="flex-shrink-0">{renderFilePreview(localFile)}</div>
+                            <div className="flex-1">
+                            <p className="text-sm font-medium truncate">{localFile.file.name}</p>
+                            <p className="text-xs text-muted-foreground">{(localFile.file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={removeFile}>
                                 <XCircle className="h-5 w-5 text-destructive" />
-                              </Button>
-                           </div>
-                      ) : (
-                        <FormControl>
-                          <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
+                            </Button>
+                        </div>
+                    ) : (
+                        <div {...getRootProps()} className={cn("border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors", isDragActive && "border-primary bg-primary/10")}>
                             <input {...getInputProps()} />
                             <UploadCloud className="mx-auto h-12 w-12 text-muted-foreground" />
                             <p className="mt-4 text-muted-foreground">
                                 {isDragActive ? 'Drop file here...' : 'Drag & drop or click to upload'}
                             </p>
-                          </div>
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </div>
+                    )}
+                </FormItem>
               )}
 
               <FormField
@@ -192,7 +211,8 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
                   <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                       Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Send Amendment Response
                   </Button>
               </DialogFooter>
