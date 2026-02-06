@@ -19,7 +19,6 @@ type SubmissionsContextType = {
   addSubmission: (submission: Submission) => void;
   updateSubmissionStatus: (submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => void;
   resolveAmendmentRequest: (submissionId: string, amendmentRequestId: string, branchComment: string, newFileData?: { name: string; size: number; type: string; url: string }) => void;
-  // The signature remains the same.
   submitAmendment: (submissionId: string, amendedFiles: AmendedFilePayload[], comment: string, responseType: string) => Promise<void>;
 };
 
@@ -29,7 +28,31 @@ export function SubmissionsProvider({ children }: { children: ReactNode }) {
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions);
 
   const addSubmission = useCallback((submission: Submission) => {
-    setSubmissions(currentSubmissions => [submission, ...currentSubmissions]);
+    // Bank-safe implementation: Explicitly create a new object with only serializable metadata.
+    // This prevents large objects (like File or Blob) from ever being stored
+    // in the global context, which is the root cause of the UI freezes.
+    const safeSubmission: Submission = {
+      id: submission.id,
+      customerName: submission.customerName,
+      branch: submission.branch,
+      submittedAt: submission.submittedAt,
+      status: submission.status,
+      officer: submission.officer,
+      documents: submission.documents.map(d => ({
+        id: d.id,
+        fileName: d.fileName,
+        documentType: d.documentType,
+        uploadedAt: d.uploadedAt,
+        size: d.size,
+        format: d.format,
+        url: d.url,
+        version: d.version,
+      })),
+      // Ensure optional fields are handled correctly
+      amendmentHistory: submission.amendmentHistory ? [...submission.amendmentHistory] : undefined,
+      pendingAmendments: submission.pendingAmendments ? [...submission.pendingAmendments] : undefined,
+    };
+    setSubmissions(currentSubmissions => [safeSubmission, ...currentSubmissions]);
   }, []);
 
   const updateSubmissionStatus = useCallback((submissionId: string, newStatus: Submission['status'], details?: string | NewAmendmentRequest) => {
