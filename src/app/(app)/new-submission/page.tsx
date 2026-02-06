@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,7 +45,8 @@ const DOCUMENT_TYPES = [
 const fileSchema = z.object({
   file: z.instanceof(File),
   docType: z.string().min(1, "Please select a document type."),
-  id: z.string()
+  id: z.string(),
+  previewUrl: z.string(), // For temporary client-side preview
 });
 
 const submissionSchema = z.object({
@@ -54,8 +56,6 @@ const submissionSchema = z.object({
 
 type FormValues = z.infer<typeof submissionSchema>;
 
-// Mock user data for "automatic branch tagging"
-const MOCK_USER_BRANCH = "Downtown";
 
 export default function NewSubmissionPage() {
   const { toast } = useToast();
@@ -81,17 +81,37 @@ export default function NewSubmissionPage() {
     control: form.control,
     name: "files",
   });
+  
+  // CRITICAL FIX: Cleanup blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      const files = form.getValues('files');
+      files.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+    };
+  }, [form]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
-      // Prevent duplicates
       if (!fields.some(field => field.file.name === file.name && field.file.size === file.size)) {
-        append({ file, docType: "", id: Math.random().toString(36).substring(7) });
+        const previewUrl = URL.createObjectURL(file);
+        append({ file, docType: "", id: Math.random().toString(36).substring(7), previewUrl });
       }
     });
   }, [append, fields]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: {'image/*': ['.jpeg', '.png'], 'application/pdf': ['.pdf']} });
+  
+  const handleRemoveFile = (index: number) => {
+    const fileToRemove = fields[index];
+    if (fileToRemove?.previewUrl) {
+      URL.revokeObjectURL(fileToRemove.previewUrl);
+    }
+    remove(index);
+  }
 
   const handleNext = async () => {
     const isValid = await form.trigger();
@@ -118,8 +138,8 @@ export default function NewSubmissionPage() {
         id: `doc-${Date.now()}-${index}`,
         fileName: f.file.name,
         documentType: f.docType,
-        // In a real app, this URL would come from a file storage service like Firebase Storage
-        url: URL.createObjectURL(f.file), 
+        // CRITICAL FIX: Use a stable placeholder URL, not the temporary blob URL
+        url: `https://picsum.photos/seed/doc${Date.now()}-${index}/800/1100`,
         size: f.file.size,
         format: f.file.type,
         uploadedAt: new Date().toISOString(),
@@ -133,15 +153,14 @@ export default function NewSubmissionPage() {
       description: `Package for ${data.customerName} has been sent for review.`,
     });
     
-    // Reset form and go back to step 1
     form.reset();
     setStep('upload');
     setIsDialogOpen(false);
   };
   
-  const renderFilePreview = (file: File) => {
+  const renderFilePreview = (file: File, previewUrl: string) => {
     if (file.type.startsWith("image/")) {
-      return <Image src={URL.createObjectURL(file)} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
+      return <Image src={previewUrl} alt={file.name} width={40} height={40} className="rounded-sm object-cover" />
     }
     return <FileIcon className="h-10 w-10 text-muted-foreground" />
   }
@@ -162,7 +181,6 @@ export default function NewSubmissionPage() {
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={form.handleSubmit(onSubmit)}>Confirm & Submit</AlertDialogAction>
               </AlertDialogFooter>
-            </AlertDialogContent>
         </AlertDialog>
 
         <CardHeader>
@@ -174,11 +192,11 @@ export default function NewSubmissionPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {formData.files.map((f, index) => (
+            {formData.files.map((f) => (
                 <Card key={f.id} className="bg-muted/30">
                     <CardHeader className="flex flex-row items-start gap-4">
                        <div className="w-16 h-16 bg-background rounded-md flex items-center justify-center border">
-                           {renderFilePreview(f.file)}
+                           {renderFilePreview(f.file, f.previewUrl)}
                        </div>
                        <div className="flex-1">
                            <CardTitle className="text-lg">{f.docType}</CardTitle>
@@ -187,7 +205,7 @@ export default function NewSubmissionPage() {
                                {(f.file.size / (1024 * 1024)).toFixed(2)} MB | {new Date().toLocaleDateString()}
                            </p>
                        </div>
-                       <a href={URL.createObjectURL(f.file)} target="_blank" rel="noopener noreferrer">
+                       <a href={f.previewUrl} target="_blank" rel="noopener noreferrer">
                          <Button variant="outline" size="sm"><Eye className="mr-2"/> View</Button>
                        </a>
                     </CardHeader>
@@ -246,7 +264,7 @@ export default function NewSubmissionPage() {
                         <div className="space-y-4">
                         {fields.map((field, index) => (
                            <div key={field.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/30">
-                             <div className="flex-shrink-0">{renderFilePreview(field.file)}</div>
+                             <div className="flex-shrink-0">{renderFilePreview(field.file, field.previewUrl)}</div>
                              <div className="flex-1">
                                <p className="text-sm font-medium truncate">{field.file.name}</p>
                                <p className="text-xs text-muted-foreground">{(field.file.size / 1024).toFixed(1)} KB</p>
@@ -271,7 +289,7 @@ export default function NewSubmissionPage() {
                                     </FormItem>
                                 )}
                              />
-                              <Button variant="ghost" size="icon" onClick={() => remove(index)}>
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoveFile(index)}>
                                 <XCircle className="h-5 w-5 text-destructive" />
                               </Button>
                            </div>
