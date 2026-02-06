@@ -129,14 +129,6 @@ export function AmendmentRequestInfoModal({ submission, request, isOpen, onOpenC
     return <FileIcon className="h-10 w-10 text-muted-foreground" />
   }
 
-  // Cleanup effect
-  useEffect(() => {
-    // This effect runs when the component unmounts or when the dialog is hidden
-    return () => {
-        removeFile();
-    }
-  }, [removeFile]);
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
